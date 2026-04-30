@@ -5223,6 +5223,7 @@ function renderDeptUnits(){
         ${u.depts.map((d,di)=>`
           <span style="background:#e8f0f7;color:var(--navy);padding:4px 10px;border-radius:20px;font-size:12px;display:flex;align-items:center;gap:5px;">
             ${d}
+            <button onclick="renameDept(${i},${di})" style="background:none;border:none;cursor:pointer;color:var(--navy);font-size:11px;padding:0 2px;line-height:1;" title="Rename dept">✏️</button>
             <button onclick="deleteDept(${i},${di})" style="background:none;border:none;cursor:pointer;color:#c0392b;font-size:13px;padding:0;line-height:1;" title="Remove dept">×</button>
           </span>`).join('')}
         <button class="btn btn-light btn-sm" onclick="showAddDept(${i})" style="font-size:11px;padding:4px 10px;">➕ Add Dept</button>
@@ -5260,6 +5261,50 @@ function deleteDept(unitIdx, deptIdx){
   unit.depts.splice(deptIdx,1);
   saveDeptUnits();
   renderDeptUnits();
+}
+
+function renameDept(unitIdx, deptIdx){
+  const unit = DEPT_UNITS[unitIdx];
+  const oldName = unit.depts[deptIdx];
+  const newName = prompt('Rename department:\n\nCurrent name: ' + oldName + '\n\nEnter new name:', oldName);
+  if(!newName || newName.trim()==='' || newName.trim()===oldName) return;
+  const trimmed = newName.trim().toUpperCase();
+
+  // Check for duplicate
+  if(unit.depts.some((d,i)=>d===trimmed && i!==deptIdx)){
+    alert('A department with this name already exists in ' + unit.unit);
+    return;
+  }
+
+  // Count trainees affected
+  const affected = TRAINEES.filter(t=>t.dept===oldName).length +
+                   ARCHIVED.filter(t=>t.dept===oldName).length;
+
+  if(!confirm('Rename "' + oldName + '" to "' + trimmed + '"?\n\n' +
+    'This will also update ' + affected + ' trainee record' + (affected!==1?'s':'') + ' with the old name.'))return;
+
+  // Update department in master list
+  unit.depts[deptIdx] = trimmed;
+
+  // Update all trainee records with old name
+  let updatedTrainees = 0;
+  TRAINEES.forEach(t=>{
+    if(t.dept===oldName){ t.dept=trimmed; updatedTrainees++; }
+  });
+  let updatedArchived = 0;
+  ARCHIVED.forEach(t=>{
+    if(t.dept===oldName){ t.dept=trimmed; updatedArchived++; }
+  });
+
+  // Save all affected data
+  saveDeptUnits();
+  if(updatedTrainees>0) saveTrainees();
+  if(updatedArchived>0) saveArchived();
+
+  renderDeptUnits();
+  alert('Done! Renamed "' + oldName + '" to "' + trimmed + '".' +
+    (updatedTrainees>0?' Updated ' + updatedTrainees + ' trainee record' + (updatedTrainees!==1?'s':'') + '.':'') +
+    (updatedArchived>0?' Updated ' + updatedArchived + ' archived record' + (updatedArchived!==1?'s':'') + '.':''));
 }
 
 function deleteUnit(unitIdx){
