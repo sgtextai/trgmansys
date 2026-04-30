@@ -3473,7 +3473,16 @@ function initAtt(){
     mTm.innerHTML='<option value="">All</option>';
     MASTERS.forEach(m=>mTm.innerHTML+=`<option value="${m.id}">${m.name}</option>`);
   }
-  if(!document.getElementById('att-date').value)document.getElementById('att-date').value=today();
+  const attDateEl=document.getElementById('att-date');
+  if(!attDateEl.value) attDateEl.value=today();
+  // Set date picker limits based on role
+  if(currentUser.role==='tm'){
+    const minDate=new Date(); minDate.setDate(minDate.getDate()-3);
+    attDateEl.min=minDate.toISOString().slice(0,10);
+    attDateEl.max=today();
+  } else if(currentUser.role==='admin'){
+    attDateEl.min=''; attDateEl.max=''; // Admin: no limits
+  }
   // Populate unit filter
   const attUnitSel=document.getElementById('att-unit-filter');
   if(attUnitSel){
@@ -3520,9 +3529,12 @@ function renderAtt(){
     const cur=ATTENDANCE[date][t.id]||'';
     const isToday=date===today();
     const offToday=isOffDay(date,t.woff);
-    // TM: mark/revoke own trainees today only | Admin: any trainee any date | TO: view only
+    // TM: mark/revoke own trainees for today + last 3 days | Admin: any date | TO: view only
+    const tmDateLimit=new Date(); tmDateLimit.setDate(tmDateLimit.getDate()-3);
+    const tmDateLimitStr=tmDateLimit.toISOString().slice(0,10);
+    const withinTMRange=date>=tmDateLimitStr && date<=today();
     const canChangeDate=!offToday&&(currentUser.role==='admin'||
-                        (currentUser.tmId===t.masterId&&isToday&&currentUser.role==='tm'));
+                        (currentUser.tmId===t.masterId&&withinTMRange&&currentUser.role==='tm'));
     const DAYS_SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     return `<tr style="${offToday?'background:#f5f5f5;opacity:0.7;':''}">
       <td>${i+1}</td><td><strong>${t.name}</strong></td><td>${t.roll}</td>
@@ -3539,7 +3551,7 @@ function renderAtt(){
             </div>`
           :`<div style="display:flex;align-items:center;gap:6px;">
               <span class="badge ${cur==='P'?'badge-green':cur==='A'?'badge-red':'badge-grey'}">${cur||'—'}</span>
-              ${cur!==''&&currentUser.tmId===t.masterId&&!isToday?'<span style="font-size:10px;color:#aaa;">(today only to clear)</span>':''}
+              ${cur!==''&&currentUser.tmId===t.masterId&&!withinTMRange?'<span style="font-size:10px;color:#aaa;">(3 day limit)</span>':''}
             </div>`
       }</td>
     </tr>`;
@@ -3560,10 +3572,13 @@ function revokeAtt(tid, date, btn){
   const isToday = date===today();
   const trainee = TRAINEES.find(t=>t.id===tid);
   if(!trainee) return;
+  const tmRevLimit=new Date(); tmRevLimit.setDate(tmRevLimit.getDate()-3);
+  const tmRevLimitStr=tmRevLimit.toISOString().slice(0,10);
+  const withinRevRange=date>=tmRevLimitStr && date<=today();
   const canRevoke = currentUser.role==='admin' ||
-                    (currentUser.tmId===trainee.masterId && isToday);
+                    (currentUser.tmId===trainee.masterId && withinRevRange);
   if(!canRevoke){
-    alert('You can only clear attendance for your own trainees on today\'s date.');
+    alert('You can only clear attendance for your own trainees within the last 3 days.');
     return;
   }
   if(!ATTENDANCE[date]) return;
@@ -3578,6 +3593,14 @@ function revokeAtt(tid, date, btn){
 function markAllPresent(){
   if(currentUser.role==='to'){alert('Training Officer can view attendance but cannot mark it.');return;}
   const date=document.getElementById('att-date').value;
+  // TM date range check
+  if(currentUser.role==='tm'){
+    const tmLimit=new Date(); tmLimit.setDate(tmLimit.getDate()-3);
+    const tmLimitStr=tmLimit.toISOString().slice(0,10);
+    if(date<tmLimitStr||date>today()){
+      alert('You can only mark attendance for today and the last 3 days.');return;
+    }
+  }
   if(!ATTENDANCE[date])ATTENDANCE[date]={};
   let list=TRAINEES;
   if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
