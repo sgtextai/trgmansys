@@ -1878,55 +1878,59 @@ async function loadFromGoogleSheets(){
     }
 
     if(data.ok){
-      // ── Load all data ──
-      if(data.masters    && data.masters.length>0)    { MASTERS=data.masters;     LS.set('smpl_masters',MASTERS);   }
-      if(data.trainees   && data.trainees.length>0)   { TRAINEES=data.trainees;   LS.set('smpl_trainees',TRAINEES); }
-      if(data.archived   && data.archived.length>0)   { ARCHIVED=data.archived;   LS.set('smpl_archived',ARCHIVED); }
-      if(data.attendance && Object.keys(data.attendance).length>0){ ATTENDANCE=data.attendance; LS.set('smpl_att',ATTENDANCE);}
-      if(data.discipline && Object.keys(data.discipline).length>0){ DISCIPLINE=data.discipline; LS.set('smpl_disc',DISCIPLINE);}
-      if(data.results    && data.results.length>0)    { MCQ_RESULTS=data.results; LS.set('smpl_results',MCQ_RESULTS);}
-      if(data.log        && data.log.length>0)        { ACTIVITY_LOG=data.log;    LS.set('smpl_log',ACTIVITY_LOG);}
-      if(data.deptUnits  && data.deptUnits.length>0)  { DEPT_UNITS=data.deptUnits; LS.set('smpl_dept_units',DEPT_UNITS);}
-      if(data.classTraining && data.classTraining.length>0){ CLASS_TRAINING=data.classTraining; LS.set('smpl_ct',CLASS_TRAINING);}
+      // ── UNCONDITIONALLY overwrite ALL local data with Google Sheets data ──
+      // Google Sheets is always the single source of truth — no conditions
+      MASTERS      = data.masters      || [];
+      TRAINEES     = data.trainees     || [];
+      ARCHIVED     = data.archived     || [];
+      ATTENDANCE   = data.attendance   || {};
+      DISCIPLINE   = data.discipline   || {};
+      MCQ_RESULTS  = data.results      || [];
+      ACTIVITY_LOG = data.log          || [];
+      CLASS_TRAINING = data.classTraining || [];
+      if(data.deptUnits && data.deptUnits.length>0) DEPT_UNITS = data.deptUnits;
+      if(data.questions && data.questions.length>0) PAPERS = data.questions;
       if(data.ctSettings){
-        if(data.ctSettings.topics)   { CT_TOPICS=data.ctSettings.topics;   LS.set('smpl_ct_topics',CT_TOPICS);}
-        if(data.ctSettings.trainers) { CT_TRAINERS=data.ctSettings.trainers; LS.set('smpl_ct_trainers',CT_TRAINERS);}
+        if(data.ctSettings.topics)   CT_TOPICS   = data.ctSettings.topics;
+        if(data.ctSettings.trainers) CT_TRAINERS = data.ctSettings.trainers;
       }
-      if(data.questions  && data.questions.length>0)  { PAPERS=data.questions;    LS.set('smpl_papers',PAPERS);    }
       if(data.settings){
-        if(data.settings.adminPwd){ ADMIN_PWD=data.settings.adminPwd; LS.set('smpl_admin_pwd',ADMIN_PWD); }
-        if(data.settings.tmPwd)   { TM_DEFAULT_PWD=data.settings.tmPwd; LS.set('smpl_tm_pwd',TM_DEFAULT_PWD); }
-        if(data.settings.toPwd)   { TO_DEFAULT_PWD=data.settings.toPwd; LS.set('smpl_to_pwd',TO_DEFAULT_PWD); }
+        if(data.settings.adminPwd){ ADMIN_PWD=data.settings.adminPwd; }
+        if(data.settings.tmPwd)   { TM_DEFAULT_PWD=data.settings.tmPwd; }
+        if(data.settings.toPwd)   { TO_DEFAULT_PWD=data.settings.toPwd; }
         if(data.settings.deviceCheck!==undefined){
           DEVICE_CHECK_ENABLED=(data.settings.deviceCheck===true||data.settings.deviceCheck==='true')?true:false;
-          LS.set('smpl_device_check',DEVICE_CHECK_ENABLED);
         }
       }
-      if(data.devices && data.devices.length>0){
+      if(data.devices){
         data.devices.forEach(d=>{ d.active=d.active===true||d.active==='TRUE'||d.active==='true'; });
         APPROVED_DEVICES=data.devices;
-        LS.set('smpl_devices',APPROVED_DEVICES);
       }
 
-      // ── Warn if Google Sheet appears empty (possible format mismatch) ──
-      const hasData = (data.masters&&data.masters.length>0) ||
-                      (data.trainees&&data.trainees.length>0);
-      const hasLocalData = MASTERS.length>0 || TRAINEES.length>0;
+      // ── Write ALL to localStorage (Google Sheets wins unconditionally) ──
+      LS.set('smpl_masters',   MASTERS);
+      LS.set('smpl_trainees',  TRAINEES);
+      LS.set('smpl_archived',  ARCHIVED);
+      LS.set('smpl_att',       ATTENDANCE);
+      LS.set('smpl_disc',      DISCIPLINE);
+      LS.set('smpl_results',   MCQ_RESULTS);
+      LS.set('smpl_log',       ACTIVITY_LOG);
+      LS.set('smpl_ct',        CLASS_TRAINING);
+      LS.set('smpl_dept_units',DEPT_UNITS);
+      LS.set('smpl_papers',    PAPERS);
+      LS.set('smpl_ct_topics', CT_TOPICS);
+      LS.set('smpl_ct_trainers',CT_TRAINERS);
+      LS.set('smpl_admin_pwd', ADMIN_PWD);
+      LS.set('smpl_tm_pwd',    TM_DEFAULT_PWD);
+      LS.set('smpl_to_pwd',    TO_DEFAULT_PWD);
+      LS.set('smpl_device_check',DEVICE_CHECK_ENABLED);
+      LS.set('smpl_devices',   APPROVED_DEVICES);
 
-      if(!hasData && hasLocalData){
-        // Server returned empty but local has data — likely format mismatch
-        setConnStatus('error',
-          'Google Sheet is empty but local data exists. '+
-          'Apps Script may need redeployment with new row-based format.');
-        showSync('error','❌ Google Sheet empty — possible Apps Script mismatch. Check connection.');
-      } else {
-        lastLoaded=new Date();
-        gsDataLoaded=true; // Google Sheets data confirmed fresh — saves now permitted
-        setConnStatus('connected','');
-        showSync('saved','✅ Data loaded from Google Sheets — '+
-          (data.trainees?data.trainees.length:0)+' trainees, '+
-          (data.masters?data.masters.length:0)+' Training Masters');
-      }
+      lastLoaded=new Date();
+      gsDataLoaded=true;
+      setConnStatus('connected','');
+      showSync('saved','✅ Data loaded — '+
+        (TRAINEES.length)+' trainees, '+(MASTERS.length)+' Training Masters');
 
     } else if(data.error==='Unauthorised — invalid key'){
       setConnStatus('error','Invalid secret key — HTML file may be outdated');
@@ -2140,37 +2144,89 @@ function doLogin(){
 function launchApp(){
   document.getElementById('login-page').style.display='none';
   document.getElementById('app').style.display='flex';
-  // Clear any stale sync messages from before login
   const bar=document.getElementById('sync-bar');
   if(bar) bar.classList.remove('show');
   const roleLabel=currentUser.role==='admin'?'Admin':currentUser.role==='to'?'Training Officer':'TM: '+currentUser.name;
   document.getElementById('user-badge').textContent=roleLabel;
-  // Show admin-only elements only for admin
   document.querySelectorAll('.admin-only').forEach(el=>el.style.display=currentUser.role==='admin'?'':'none');
-  // If data still loading, show a brief notice with auto-dismiss
-  if(!dataLoaded){
-    showSync('saving','⏳ Loading data from Google Sheets...');
-    setTimeout(()=>{
-      if(!dataLoaded){
-        dataLoaded=true;
-        setConnStatus('offline','Data load timed out — using locally cached data');
-        showSync('offline','⚠️ Could not load from server — using local data. Tap connection pill to retry.');
-        renderDashboard(); // show whatever local data we have
-      }
-    }, 8000);
-  } else {
-    // Data already loaded — refresh current view
-    renderDashboard();
-  }
-  // Show TO-or-admin elements for TO and admin
   document.querySelectorAll('.to-access').forEach(el=>el.style.display=(currentUser.role==='admin'||currentUser.role==='to')?'':'none');
-  // Show TO view-only notice in attendance
   const toNotice=document.getElementById('to-att-notice');
   if(toNotice) toNotice.style.display=currentUser.role==='to'?'':'none';
-  // Hide Mark All Present button for TO
   const markAllBtn=document.querySelector('[onclick="markAllPresent()"]');
   if(markAllBtn) markAllBtn.style.display=(currentUser.role==='to')?'none':'';
-  initApp();
+
+  // ── Always load fresh from Google Sheets after login ──
+  // Block dashboard until GS data confirmed — Google Sheets always wins
+  showPostLoginLoader();
+  loadFromGoogleSheets().then(()=>{
+    hidePostLoginLoader();
+    if(gsDataLoaded){
+      // GS loaded successfully — show dashboard with fresh data
+      migrateDates();
+      initApp();
+      renderDashboard();
+      populateTMSelect();
+      updateQueueBadge();
+    } else {
+      // GS failed — show error with retry
+      showPostLoginError();
+    }
+  });
+}
+
+function showPostLoginLoader(){
+  // Show loading overlay on dashboard
+  const dash=document.getElementById('page-dashboard');
+  if(!dash) return;
+  const existing=document.getElementById('post-login-loader');
+  if(existing) existing.remove();
+  const loader=document.createElement('div');
+  loader.id='post-login-loader';
+  loader.style.cssText='position:fixed;inset:0;background:rgba(14,32,51,0.92);z-index:9997;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+  loader.innerHTML=`
+    <div style="width:52px;height:52px;border:5px solid rgba(255,255,255,0.2);border-top-color:#c8a84b;border-radius:50%;animation:spin .8s linear infinite;"></div>
+    <div style="color:#fff;font-size:16px;font-weight:700;">Loading latest data...</div>
+    <div style="color:#c8a84b;font-size:13px;">Please wait — syncing from Google Sheets</div>
+    <div style="color:rgba(255,255,255,0.6);font-size:12px;">Sagar Manufacturers Pvt. Ltd.</div>`;
+  document.body.appendChild(loader);
+}
+
+function hidePostLoginLoader(){
+  const el=document.getElementById('post-login-loader');
+  if(el) el.remove();
+}
+
+function showPostLoginError(){
+  const existing=document.getElementById('post-login-loader');
+  if(existing) existing.remove();
+  const err=document.createElement('div');
+  err.id='post-login-loader';
+  err.style.cssText='position:fixed;inset:0;background:rgba(14,32,51,0.95);z-index:9997;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;';
+  err.innerHTML=`
+    <div style="font-size:48px;">❌</div>
+    <div style="color:#fff;font-size:16px;font-weight:700;text-align:center;">Could not load data from Google Sheets</div>
+    <div style="color:#e88;font-size:13px;text-align:center;">Please check your internet connection and try again.</div>
+    <button onclick="retryPostLogin()" style="margin-top:8px;padding:14px 32px;background:#c8a84b;color:#1a3a5c;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;">🔄 Retry</button>
+    <button onclick="proceedWithLocalData()" style="padding:10px 24px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:12px;font-size:13px;cursor:pointer;">Continue with local data (not recommended)</button>`;
+  document.body.appendChild(err);
+}
+
+function retryPostLogin(){
+  hidePostLoginLoader();
+  showPostLoginLoader();
+  loadFromGoogleSheets().then(()=>{
+    hidePostLoginLoader();
+    if(gsDataLoaded){ migrateDates(); initApp(); renderDashboard(); populateTMSelect(); updateQueueBadge(); }
+    else showPostLoginError();
+  });
+}
+
+function proceedWithLocalData(){
+  // Allow proceeding with local data — user's choice
+  hidePostLoginLoader();
+  gsDataLoaded=true; // allow saves
+  showSync('offline','⚠️ Using local data — changes may not reflect latest updates');
+  migrateDates(); initApp(); renderDashboard(); populateTMSelect(); updateQueueBadge();
 }
 function doLogout(){
   gsDataLoaded=false; // Reset on logout — next session must reload from GS
