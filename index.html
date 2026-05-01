@@ -332,7 +332,7 @@ tr:hover td{background:#f8fafc;}
     <div class="section-hd">
       <h2>📚 Class Training</h2>
       <div class="btn-group">
-        <button class="btn btn-primary" onclick="toggleForm('ct-form')" id="ct-record-btn">➕ Record Training Session</button>
+        <button class="btn btn-primary" onclick="toggleCTForm()" id="ct-record-btn">➕ Record Training Session</button>
       </div>
     </div>
 
@@ -386,7 +386,7 @@ tr:hover td{background:#f8fafc;}
 
           <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
             <button class="btn btn-primary" onclick="saveCTSession()">💾 Save Training Session</button>
-            <button class="btn btn-light" onclick="toggleForm('ct-form')">Cancel</button>
+            <button class="btn btn-light" onclick="toggleCTForm()">Cancel</button>
           </div>
           <div id="ct-save-msg" style="font-size:13px;margin-top:8px;display:none;padding:8px 12px;border-radius:8px;"></div>
         </div>
@@ -1887,7 +1887,13 @@ async function loadFromGoogleSheets(){
       DISCIPLINE   = data.discipline   || {};
       MCQ_RESULTS  = data.results      || [];
       ACTIVITY_LOG = data.log          || [];
-      CLASS_TRAINING = data.classTraining || [];
+      // Fix CLASS_TRAINING — ensure dates are strings and roll numbers clean
+      CLASS_TRAINING = (data.classTraining || []).map(r=>({
+        ...r,
+        date: r.date ? String(r.date).split('T')[0] : '',
+        roll: String(r.roll||'').replace(/\.0$/,''),
+        traineeId: String(r.traineeId||'')
+      }));
       // ALL unconditional — Google Sheets always wins, no exceptions
       if(data.deptUnits  && data.deptUnits.length>0)  DEPT_UNITS  = data.deptUnits;
       if(data.questions  && data.questions.length>0)   PAPERS      = data.questions;
@@ -2683,20 +2689,35 @@ const TM_COLS = ['Name','Employee ID','Department','Mobile Number',
 // CLASS TRAINING FUNCTIONS
 // ══════════════════════════════════════════════════════
 
+function toggleCTForm(){
+  const form = document.getElementById('ct-form');
+  const btn = document.getElementById('ct-record-btn');
+  if(!form) return;
+  const isOpen = form.classList.contains('open');
+  if(isOpen){
+    form.classList.remove('open');
+    if(btn) btn.textContent = '➕ Record Training Session';
+  } else {
+    form.classList.add('open');
+    if(btn) btn.textContent = '✖ Close Form';
+    const dateEl = document.getElementById('ct-date');
+    if(dateEl && !dateEl.value) dateEl.value = today();
+    loadCTAttendees();
+  }
+}
+
 function initClassTraining(){
-  // Set default date to today
-  const dateEl = document.getElementById('ct-date');
-  if(dateEl && !dateEl.value) dateEl.value = today();
+  // Always close form on tab switch
+  const form = document.getElementById('ct-form');
+  if(form) form.classList.remove('open');
+  const btn = document.getElementById('ct-record-btn');
+  if(btn) btn.textContent = '➕ Record Training Session';
   // Populate trainer dropdown
   populateCTTrainers();
   // Render history and filters
   renderCTHistory();
   initCTHistoryFilters();
   renderCTGrid();
-  renderCTGrid();
-  // Show/hide record button based on role
-  const btn = document.getElementById('ct-record-btn');
-  if(btn) btn.style.display = (currentUser.role==='to'||currentUser.role==='admin')?'':'none';
 }
 
 function populateCTTrainers(){
@@ -2801,7 +2822,7 @@ function saveCTSession(){
   renderCTHistory();
   initCTHistoryFilters();
   
-  // Reset form
+  // Reset form and close after 2 seconds
   setTimeout(()=>{
     document.getElementById('ct-category').value='';
     document.getElementById('ct-topic').innerHTML='<option value="">-- Select Category first --</option>';
@@ -2810,6 +2831,7 @@ function saveCTSession(){
     document.getElementById('ct-trainer-custom-wrap').style.display='none';
     document.getElementById('ct-attendees-list').innerHTML='<div style="text-align:center;color:var(--gm);font-size:13px;">Select a date to load present trainees</div>';
     document.getElementById('ct-attendees-msg').textContent='';
+    toggleCTForm(); // close form after save
   }, 2000);
 }
 
