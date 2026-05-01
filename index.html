@@ -1636,9 +1636,9 @@ let CT_TOPICS = LS.get('smpl_ct_topics', JSON.parse(JSON.stringify(DEFAULT_CT_TO
 
 const DEFAULT_CT_TRAINERS = [
   'SUJATA','RIYA','SUMIT','SHIVESH GUPTA','ANIL JHANGEL',
-  'ANIL TIWARI','IR TEAM','DISPENSARY TEAM','FIRE SAFETY TEAM','HR TEAM'
+  'ANIL TIWARI','IR TEAM','DISPENSARY TEAM','FIRE SAFETY TEAM','HR TEAM','ANITA YADAV'
 ];
-let CT_TRAINERS = LS.get('smpl_ct_trainers', [...DEFAULT_CT_TRAINERS]);
+let CT_TRAINERS = LS.get('smpl_ct_trainers', [...DEFAULT_CT_TRAINERS]); // defaults only if GS never loaded
 function saveCTSettings(){ 
   gsSync('saveCTSettings', {topics: CT_TOPICS, trainers: CT_TRAINERS}, 'smpl_ct_settings', {topics: CT_TOPICS, trainers: CT_TRAINERS}); 
 }
@@ -1666,12 +1666,12 @@ function getAllCTs(){
 }
 
 const DEFAULT_DEPT_UNITS=[
-  {unit:'Yarn Unit 1',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINC CONER','TFO, CHEESE WDG','PACKING','QSD']},
-  {unit:'Yarn Unit 2',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINC CONER','TFO, CHEESE WDG','PACKING','QSD']},
-  {unit:'Yarn Unit 3',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINC CONER','TFO, CHEESE WDG','PACKING','QSD']},
-  {unit:'Yarn Unit 4',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINC CONER','TFO, CHEESE WDG','PACKING','QSD']},
-  {unit:'Yarn Unit 5',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINC CONER','TFO, CHEESE WDG','PACKING','QSD']},
-  {unit:'Yarn Unit 6',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINC CONER','TFO, CHEESE WDG','PACKING','QSD']},
+  {unit:'Yarn Unit 1',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINK CONER','TFO, CHEESE WDG','PACKING','QSD']},
+  {unit:'Yarn Unit 2',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINK CONER','TFO, CHEESE WDG','PACKING','QSD']},
+  {unit:'Yarn Unit 3',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINK CONER','TFO, CHEESE WDG','PACKING','QSD']},
+  {unit:'Yarn Unit 4',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINK CONER','TFO, CHEESE WDG','PACKING','QSD']},
+  {unit:'Yarn Unit 5',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINK CONER','TFO, CHEESE WDG','PACKING','QSD']},
+  {unit:'Yarn Unit 6',depts:['BLOW ROOM','CARDING','DRAW FRAME','OMEGA LAP','COMBER','SPEED FRAME','RING FRAME','LINK CONER','TFO, CHEESE WDG','PACKING','QSD']},
   {unit:'Knit Unit 1',depts:['KNITTING']},
   {unit:'Knit Unit 2',depts:['KNITTING']},
 ];
@@ -1888,23 +1888,19 @@ async function loadFromGoogleSheets(){
       MCQ_RESULTS  = data.results      || [];
       ACTIVITY_LOG = data.log          || [];
       CLASS_TRAINING = data.classTraining || [];
-      if(data.deptUnits && data.deptUnits.length>0) DEPT_UNITS = data.deptUnits;
-      if(data.questions && data.questions.length>0) PAPERS = data.questions;
-      if(data.ctSettings){
-        if(data.ctSettings.topics)   CT_TOPICS   = data.ctSettings.topics;
-        if(data.ctSettings.trainers) CT_TRAINERS = data.ctSettings.trainers;
-      }
-      if(data.settings){
-        if(data.settings.adminPwd){ ADMIN_PWD=data.settings.adminPwd; }
-        if(data.settings.tmPwd)   { TM_DEFAULT_PWD=data.settings.tmPwd; }
-        if(data.settings.toPwd)   { TO_DEFAULT_PWD=data.settings.toPwd; }
-        if(data.settings.deviceCheck!==undefined){
-          DEVICE_CHECK_ENABLED=(data.settings.deviceCheck===true||data.settings.deviceCheck==='true')?true:false;
-        }
-      }
+      // ALL unconditional — Google Sheets always wins, no exceptions
+      if(data.deptUnits  && data.deptUnits.length>0)  DEPT_UNITS  = data.deptUnits;
+      if(data.questions  && data.questions.length>0)   PAPERS      = data.questions;
+      if(data.ctSettings && data.ctSettings.topics)    CT_TOPICS   = data.ctSettings.topics;
+      if(data.ctSettings && data.ctSettings.trainers)  CT_TRAINERS = data.ctSettings.trainers;
+      if(data.settings   && data.settings.adminPwd)    ADMIN_PWD        = data.settings.adminPwd;
+      if(data.settings   && data.settings.tmPwd)       TM_DEFAULT_PWD   = data.settings.tmPwd;
+      if(data.settings   && data.settings.toPwd)       TO_DEFAULT_PWD   = data.settings.toPwd;
+      if(data.settings   && data.settings.deviceCheck!==undefined)
+        DEVICE_CHECK_ENABLED=(data.settings.deviceCheck===true||data.settings.deviceCheck==='true')?true:false;
       if(data.devices){
         data.devices.forEach(d=>{ d.active=d.active===true||d.active==='TRUE'||d.active==='true'; });
-        APPROVED_DEVICES=data.devices;
+        APPROVED_DEVICES = data.devices;
       }
 
       // ── Write ALL to localStorage (Google Sheets wins unconditionally) ──
@@ -1918,8 +1914,8 @@ async function loadFromGoogleSheets(){
       LS.set('smpl_ct',        CLASS_TRAINING);
       LS.set('smpl_dept_units',DEPT_UNITS);
       LS.set('smpl_papers',    PAPERS);
-      LS.set('smpl_ct_topics', CT_TOPICS);
-      LS.set('smpl_ct_trainers',CT_TRAINERS);
+      LS.set('smpl_ct_topics',   CT_TOPICS);   // overwrite localStorage with GS data
+      LS.set('smpl_ct_trainers', CT_TRAINERS); // overwrite localStorage with GS data
       LS.set('smpl_admin_pwd', ADMIN_PWD);
       LS.set('smpl_tm_pwd',    TM_DEFAULT_PWD);
       LS.set('smpl_to_pwd',    TO_DEFAULT_PWD);
