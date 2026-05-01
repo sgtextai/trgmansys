@@ -1498,6 +1498,17 @@ async function gsSync(action, payload, localKey, localData){
   showSync('saving','Saving...');
   // Always save to localStorage immediately
   if(localKey) LS.set(localKey, localData);
+
+  // Block Google Sheets save until fresh data confirmed loaded
+  // This prevents stale localStorage data from overwriting fresh GS data
+  if(!gsDataLoaded){
+    // Queue for later when GS data is confirmed
+    offlineQueue.push({action,payload,localKey,ts:Date.now()});
+    saveQueue(); updateQueueBadge();
+    showSync('offline','⏳ Queued — waiting for Google Sheets connection...');
+    return;
+  }
+
   // Then try Google Sheets
   const result = await gsPost(action, payload);
   if(result.ok){
@@ -1763,6 +1774,7 @@ function saveNewResult(resultObj){
 
 // ── INITIAL LOAD FROM GOOGLE SHEETS ─────────────────────────
 let dataLoaded=false;
+let gsDataLoaded=false; // True only after successful Google Sheets load — gates all saves
 
 // Connection state tracking
 let connState = 'loading'; // loading | connected | offline | error
@@ -1815,6 +1827,7 @@ async function retryConnection(){
   showSync('saving','Reconnecting to Google Sheets...');
   await loadFromGoogleSheets();
   if(connState==='connected'){
+    gsDataLoaded=true; // Fresh data confirmed after retry
     // Refresh current page data
     const activePage=document.querySelector('.page.active');
     if(activePage){
@@ -1832,6 +1845,7 @@ async function retryConnection(){
 async function loadFromGoogleSheets(){
   if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE'){
     setConnStatus('offline','No server URL configured — using local data only');
+    gsDataLoaded=true; // Local mode — allow saves
     dataLoaded=true;
     return;
   }
@@ -1839,7 +1853,10 @@ async function loadFromGoogleSheets(){
   // Check internet connectivity first
   if(!navigator.onLine){
     setConnStatus('offline','No internet connection');
-    showSync('offline','⚠️ No internet — using locally saved data');
+    showSync('offline','⚠️ No internet — using locally saved data. Changes will sync when connected.');
+    // If we have local data from a previous fresh load — allow saves
+    // This lets TMs mark attendance when offline
+    if(TRAINEES.length>0||MASTERS.length>0) gsDataLoaded=true;
     dataLoaded=true;
     return;
   }
@@ -1904,6 +1921,7 @@ async function loadFromGoogleSheets(){
         showSync('error','❌ Google Sheet empty — possible Apps Script mismatch. Check connection.');
       } else {
         lastLoaded=new Date();
+        gsDataLoaded=true; // Google Sheets data confirmed fresh — saves now permitted
         setConnStatus('connected','');
         showSync('saved','✅ Data loaded from Google Sheets — '+
           (data.trainees?data.trainees.length:0)+' trainees, '+
@@ -2155,6 +2173,7 @@ function launchApp(){
   initApp();
 }
 function doLogout(){
+  gsDataLoaded=false; // Reset on logout — next session must reload from GS
   currentUser={role:'',name:'',tmId:''};
   document.getElementById('login-page').style.display='flex';
   document.getElementById('app').style.display='none';
