@@ -5307,10 +5307,21 @@ function renderPendingArchive(){
   const tbody=document.getElementById('pending-archive-tbody');
   const countEl=document.getElementById('dash-pending-count');
   if(!card||!tbody) return;
+  // Always hidden for TM
   if(currentUser.role==='tm'){card.style.display='none';return;}
-  if(!PENDING_ARCHIVE.length){card.style.display='none';return;}
+  // Always visible for Admin and TO
   card.style.display='';
-  if(countEl) countEl.textContent=PENDING_ARCHIVE.length+' pending';
+  const count=PENDING_ARCHIVE.length;
+  // Update card border color based on pending count
+  card.style.border=count>0?'2px solid var(--orange)':'2px solid var(--green)';
+  card.querySelector('.card-hd').style.background=count>0?'#fdf3e3':'#e8f8ee';
+  card.querySelector('h3').style.color=count>0?'var(--orange)':'var(--green)';
+  card.querySelector('h3').textContent=(count>0?'⚠️':'✅')+' Pending Archive Requests';
+  if(countEl) countEl.textContent=count>0?count+' pending':'';
+  if(!count){
+    tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:16px;color:var(--green);font-weight:600;">No pending archive requests at this time.</td></tr>';
+    return;
+  }
   tbody.innerHTML=PENDING_ARCHIVE.map((p,i)=>{
     const tm=MASTERS.find(m=>m.id===p.masterId);
     return `<tr>
@@ -5321,8 +5332,8 @@ function renderPendingArchive(){
       <td style="font-size:11px;color:var(--gm);">${p.remark||'-'}</td>
       <td style="font-size:11px;">${fmt(p.requestDate)}<br><span style="color:var(--gm);">${p.requestedBy}</span></td>
       <td style="white-space:nowrap;">
-        <button class="btn btn-success btn-sm" onclick="approveArchive('${p.id}')">Approve</button>
-        <button class="btn btn-danger btn-sm" onclick="rejectArchive('${p.id}')" style="margin-top:4px;">Reject</button>
+        <button class="btn btn-success btn-sm" onclick="approveArchive('${p.id}')">✅ Approve</button>
+        <button class="btn btn-danger btn-sm" onclick="rejectArchive('${p.id}')" style="margin-top:4px;">❌ Reject</button>
       </td>
     </tr>`;
   }).join('');
