@@ -3369,10 +3369,16 @@ function setDesig(tid,val,btn){
         b.style.color=active?'#fff':dc[bval];
       }
     });
-    // Enable/disable 2nd DOP input based on new designation
+    // Immediately update DOP date inputs in the row
     const row=btn.closest('tr');
     if(row){
+      const dop1=row.querySelector('[id^="pdop1-"]');
       const dop2=row.querySelector('[id^="pdop2-"]');
+      // Set 1st DOP to today when promoted to Sr.Tr.
+      if(val==='Sr.Tr.' && dop1 && !dop1.value) dop1.value=todayStr;
+      // Set 2nd DOP to today when promoted to FTW
+      if(val==='FTW' && dop2 && !dop2.value) dop2.value=todayStr;
+      // Enable/disable 2nd DOP based on designation
       if(dop2) dop2.disabled=(val==='Tr');
     }
   }
