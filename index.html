@@ -28,7 +28,7 @@ button,input,select,textarea{font-family:inherit;}
 
 .main-nav{background:var(--navy-dark);display:flex;overflow-x:auto;border-bottom:2px solid var(--gold);scrollbar-width:none;}
 .main-nav::-webkit-scrollbar{display:none;}
-.nav-tab{flex-shrink:0;padding:11px 18px;font-size:13px;font-weight:600;color:var(--gm);cursor:pointer;border:none;background:transparent;border-bottom:3px solid transparent;white-space:nowrap;transition:.2s;}
+.nav-tab{flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--gm);cursor:pointer;border:none;background:transparent;border-bottom:3px solid transparent;white-space:nowrap;transition:.2s;}
 .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
 .nav-tab:hover{color:#fff;}
 
@@ -294,10 +294,11 @@ tr:hover td{background:#f8fafc;}
     <button class="nav-tab" onclick="showPage('classTraining')">📚 Class Training</button>
     <button class="nav-tab" onclick="showPage('test')">📝 MCQ Test</button>
     <button class="nav-tab" onclick="showPage('masters')">👨‍🏫 Training Masters</button>
-    <button class="nav-tab" onclick="showPage('trainees')">👷 Trainees</button>
+    <button class="nav-tab" onclick="showPage('trainees')" id="nav-trainees">👷 Trainees <span id="pending-archive-badge" style="display:none;background:#e67e22;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:2px;">0</span></button>
     <button class="nav-tab" onclick="showPage('attendance')">📅 Attendance</button>
     <button class="nav-tab" onclick="showPage('discipline')">⭐ Discipline</button>
     <button class="nav-tab" onclick="showPage('reports')">📈 Reports</button>
+    <button class="nav-tab" onclick="showPage('promotion')" id="nav-promotion">🏅 Promotion</button>
     <button class="nav-tab admin-only" onclick="showPage('mcqresults')">🎯 MCQ Results</button>
     <button class="nav-tab admin-only" onclick="showPage('activitylog')">📋 Activity Log</button>
     <button class="nav-tab admin-only" onclick="showPage('settings')">⚙️ Settings</button>
@@ -312,6 +313,26 @@ tr:hover td{background:#f8fafc;}
   <!-- DASHBOARD -->
   <div class="page active" id="page-dashboard">
     <div class="stats-row" id="dash-stats"></div>
+    <!-- Pending Archive Card — visible to Admin and TO only -->
+    <div id="dash-pending-archive" style="display:none;margin-top:16px;">
+      <div class="card" style="border:2px solid var(--orange);">
+        <div class="card-hd" style="background:#fdf3e3;">
+          <h3 style="color:var(--orange);">⚠️ Pending Archive Requests</h3>
+          <span id="dash-pending-count" style="font-size:13px;color:var(--orange);font-weight:700;"></span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Trainee</th><th>Roll</th><th>Dept</th><th>Unit</th>
+              <th>Training Master</th><th>Reason</th><th>Remark</th><th>Requested</th>
+              <th>Action</th>
+            </tr></thead>
+            <tbody id="pending-archive-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
       <!-- Training Masters Panel -->
       <div class="card">
@@ -395,10 +416,11 @@ tr:hover td{background:#f8fafc;}
 
     <!-- TRAINING HISTORY -->
     <div class="card">
-      <div class="card-hd">
-        <h3>📋 Training History</h3>
+      <div class="card-hd" style="cursor:pointer;" onclick="toggleCTHistory()">
+        <h3>📋 Training History <span id="ct-history-toggle-icon" style="font-size:12px;color:var(--gm);">▼ Show</span></h3>
         <span id="ct-history-count"></span>
       </div>
+      <div id="ct-history-body" style="display:none;">
       <div class="card-body" style="padding:10px 14px 6px;">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
           <div class="form-field">
@@ -430,6 +452,7 @@ tr:hover td{background:#f8fafc;}
           <tbody id="ct-history-tbody"></tbody>
         </table>
       </div>
+      </div><!-- end ct-history-body -->
     </div>
 
     <!-- TOPIC COVERAGE GRID -->
@@ -839,6 +862,56 @@ tr:hover td{background:#f8fafc;}
 
   <!-- SETTINGS (Admin only) -->
   <!-- ACTIVITY LOG PAGE -->
+  <!-- PROMOTION PAGE -->
+  <div class="page" id="page-promotion">
+    <div class="section-hd">
+      <h2>🏅 Promotion</h2>
+      <span id="promo-count" style="font-size:13px;color:var(--gm);"></span>
+    </div>
+    <div class="card">
+      <div class="card-body" style="padding:10px 14px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="form-field">
+            <label>Filter by Training Master</label>
+            <select id="promo-filter-tm" onchange="renderPromotion()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;min-width:180px;">
+              <option value="">All Training Masters</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Filter by Designation</label>
+            <select id="promo-filter-desig" onchange="renderPromotion()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;">
+              <option value="">All</option>
+              <option value="Tr">Trainee</option>
+              <option value="Sr.Tr.">Sr. Trainee</option>
+              <option value="FTW">Full Trained Worker</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Filter by Unit</label>
+            <select id="promo-filter-unit" onchange="renderPromotion()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;min-width:140px;">
+              <option value="">All Units</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Name</th><th>Roll No.</th>
+            <th>Training Master</th>
+            <th>Designation</th>
+            <th>1st DOP<br><small style="font-weight:400;font-size:10px;">Tr→Sr.Tr.</small></th>
+            <th>2nd DOP<br><small style="font-weight:400;font-size:10px;">Sr.Tr.→FTW</small></th>
+            <th>Save</th>
+          </tr></thead>
+          <tbody id="promo-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- MCQ RESULTS PAGE -->
   <div class="page" id="page-mcqresults">
     <div class="section-hd">
@@ -1592,6 +1665,8 @@ let PAPERS=loadPapers();
 let MASTERS=LS.get('smpl_masters',[]);      // [{id,name,empId,dept,doj,exp,pwd}]
 let TRAINEES=LS.get('smpl_trainees',[]);    // [{id,name,roll,dept,doj,masterId,phone}]
 let ARCHIVED=LS.get('smpl_archived',[]);
+let PENDING_ARCHIVE=LS.get('smpl_pending_archive',[]); // TM archive requests awaiting TO/Admin approval
+function savePendingArchive(){ gsSync('savePendingArchive',PENDING_ARCHIVE,'smpl_pending_archive',PENDING_ARCHIVE); }
 
 // Department-Unit master data
 // Structure: [{unit:'Yarn Unit 1', depts:['BLOW ROOM','CARDING',...]}]
@@ -1888,6 +1963,7 @@ async function loadFromGoogleSheets(){
       MCQ_RESULTS  = data.results      || [];
       ACTIVITY_LOG = data.log          || [];
       // Fix CLASS_TRAINING — ensure dates are strings and roll numbers clean
+      if(data.pendingArchive) { PENDING_ARCHIVE=data.pendingArchive; LS.set('smpl_pending_archive',PENDING_ARCHIVE); }
       CLASS_TRAINING = (data.classTraining || []).map(r=>({
         ...r,
         date: r.date ? String(r.date).split('T')[0] : '',
@@ -1918,6 +1994,7 @@ async function loadFromGoogleSheets(){
       LS.set('smpl_results',   MCQ_RESULTS);
       LS.set('smpl_log',       ACTIVITY_LOG);
       LS.set('smpl_ct',        CLASS_TRAINING);
+      LS.set('smpl_pending_archive', PENDING_ARCHIVE);
       LS.set('smpl_dept_units',DEPT_UNITS);
       LS.set('smpl_papers',    PAPERS);
       LS.set('smpl_ct_topics',   CT_TOPICS);   // overwrite localStorage with GS data
@@ -2256,6 +2333,7 @@ function showPage(id){
   if(id==='settings'){if(currentUser.role!=='admin'){alert('Access denied. Admin only.');return;}initSettings();}
   if(id==='activitylog'){if(currentUser.role!=='admin'){alert('Access denied. Admin only.');return;}initActivityLog();}
   if(id==='mcqresults'){if(currentUser.role!=='admin'){alert('Access denied. Admin only.');return;}initMCQResults();}
+  if(id==='promotion'){initPromotion();}
   if(id==='classTraining'){initClassTraining();}
   // TO blocked from Settings — already handled by admin-only class
   if(id==='test')initTestPage();
@@ -2355,6 +2433,9 @@ function renderDashboard(){
     tmHTML+='</table>';
     tmListEl.innerHTML=tmHTML;
   }
+
+  renderPendingArchive();
+  updatePendingArchiveBadge();
 
   // ── Unit-Department Grid ──
   const gridEl=document.getElementById('dash-unit-grid');
@@ -3179,7 +3260,7 @@ function renderTR(){
     if(checkCol) checkCol.style.display=isAdminUser?'':'none';
     return `<tr>
       ${isAdminUser?`<td><input type="checkbox" class="tr-checkbox" value="${t.id}" onchange="updateTRSelCount()"></td>`:''}
-      <td>${i+1}</td><td><strong>${t.name}</strong></td><td>${t.roll}</td>
+      <td>${i+1}</td><td><strong>${t.name}</strong>${PENDING_ARCHIVE.some(p=>p.traineeId===t.id)?'<span style="background:#e67e22;color:#fff;border-radius:8px;padding:2px 6px;font-size:10px;margin-left:6px;">⏳ Pending</span>':''}</td><td>${t.roll}</td>
       <td>${t.dept||'—'}</td><td>${t.unit||'—'}</td><td>${t.phone||'—'}</td><td>${fmt(t.doj)}</td><td>${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][t.woff!==undefined?t.woff:0]}</td>
       <td>${tm?tm.name:'—'}</td>
       <td><span class="badge ${desigColor[d]||'badge-grey'}">${desigLabel[d]||d}</span></td>
@@ -3366,29 +3447,34 @@ function confirmArchive(){
   const t=TRAINEES.find(x=>x.id===archiveTargetId);
   if(!t){ closeArchiveModal(); return; }
 
-  // Move trainee to archived list
-  const archivedEntry = {
-    ...t,
-    archiveReason: reason,
-    archiveDate:   date,
-    archiveRemark: remark,
-    archivedBy:    currentUser.name,
-    archivedRole:  currentUser.role
-  };
-  ARCHIVED.push(archivedEntry);
-  TRAINEES = TRAINEES.filter(x=>x.id!==archiveTargetId);
-
-  saveTrainees();
-  saveArchived();
-  closeArchiveModal();
-  renderTR();
-  updateArchivedCount();
-
-  // Show confirmation
-  const reasonLabel = reason==='Promoted'?'Promoted to FTW': reason==='Left'?'Left Job':'Transferred';
-  setTimeout(()=>alert(`✅ ${t.name} has been archived.
-Reason: ${reasonLabel}
-Date: ${date}`), 200);
+  if(currentUser.role==='tm'){
+    // TM — submit for approval instead of direct archive
+    const pending={
+      id:uid(), traineeId:t.id, traineeName:t.name, roll:t.roll,
+      dept:t.dept||'', unit:t.unit||'', masterId:t.masterId,
+      reason, remark, requestDate:date,
+      requestedBy:currentUser.name, requestedRole:currentUser.role
+    };
+    PENDING_ARCHIVE.push(pending);
+    savePendingArchive();
+    updatePendingArchiveBadge();
+    closeArchiveModal();
+    renderTR();
+    setTimeout(()=>alert('Archive request submitted for '+t.name+'. Training Officer or Admin will review and approve.'),200);
+    logActivity('ARCHIVE_REQUEST','Archive request: '+t.name+' ('+t.roll+') — '+reason);
+  } else {
+    // Admin or TO — archive directly
+    const archivedEntry={...t,archiveReason:reason,archiveDate:date,
+      archiveRemark:remark,archivedBy:currentUser.name,archivedRole:currentUser.role};
+    ARCHIVED.push(archivedEntry);
+    TRAINEES=TRAINEES.filter(x=>x.id!==archiveTargetId);
+    saveTrainees();saveArchived();
+    closeArchiveModal();
+    renderTR();updateArchivedCount();
+    const rl=reason==='Promoted'?'Promoted to FTW':reason==='Left'?'Left Job':'Transferred';
+    setTimeout(()=>alert('Archived: '+t.name+' | Reason: '+rl+' | Date: '+date),200);
+    logActivity('ARCHIVE','Trainee archived: '+t.name+' ('+t.roll+') — '+reason);
+  }
 }
 
 function toggleArchivedPanel(){
@@ -5136,6 +5222,135 @@ function resetMCQRFilters(){
   if(tr) tr.value='';
   if(pap) pap.value='';
   renderMCQResults();
+}
+
+function toggleCTHistory(){
+  const body=document.getElementById('ct-history-body');
+  const icon=document.getElementById('ct-history-toggle-icon');
+  if(!body) return;
+  const isOpen=body.style.display!=='none';
+  body.style.display=isOpen?'none':'';
+  if(icon) icon.textContent=isOpen?'▼ Show':'▲ Hide';
+}
+
+function initPromotion(){
+  const tmSel=document.getElementById('promo-filter-tm');
+  const curTm=tmSel.value;
+  tmSel.innerHTML='<option value="">All Training Masters</option>';
+  MASTERS.forEach(m=>tmSel.innerHTML+=`<option value="${m.id}">${m.name}</option>`);
+  if(curTm) tmSel.value=curTm;
+  const unitSel=document.getElementById('promo-filter-unit');
+  const curUnit=unitSel.value;
+  unitSel.innerHTML='<option value="">All Units</option>';
+  [...new Set(TRAINEES.map(t=>t.unit).filter(u=>u))].sort().forEach(u=>unitSel.innerHTML+=`<option value="${u}">${u}</option>`);
+  if(curUnit) unitSel.value=curUnit;
+  renderPromotion();
+}
+
+function renderPromotion(){
+  const tmF=(document.getElementById('promo-filter-tm')||{}).value||'';
+  const desigF=(document.getElementById('promo-filter-desig')||{}).value||'';
+  const unitF=(document.getElementById('promo-filter-unit')||{}).value||'';
+  let list=TRAINEES;
+  if(currentUser.role==='tm') list=list.filter(t=>t.masterId===currentUser.tmId);
+  else if(tmF) list=list.filter(t=>t.masterId===tmF);
+  if(desigF) list=list.filter(t=>(t.desig||'Tr')===desigF);
+  if(unitF) list=list.filter(t=>(t.unit||'')===unitF);
+  const count=document.getElementById('promo-count');
+  if(count) count.textContent=list.length+' trainees';
+  const tbody=document.getElementById('promo-tbody');
+  const dc={'Tr':'var(--gm)','Sr.Tr.':'var(--blue)','FTW':'var(--green)'};
+  tbody.innerHTML=list.length?list.map((t,i)=>{
+    const tm=MASTERS.find(m=>m.id===t.masterId);
+    const canEdit=currentUser.role==='admin'||currentUser.role==='to'||currentUser.tmId===t.masterId;
+    const d=t.desig||'Tr';
+    const btns=['Tr','Sr.Tr.','FTW'].map(v=>`<button
+      style="padding:4px 10px;border-radius:6px;border:2px solid ${dc[v]};font-size:11px;font-weight:700;
+      cursor:${canEdit?'pointer':'default'};margin:1px;
+      background:${v===d?dc[v]:'transparent'};color:${v===d?'#fff':dc[v]};"
+      ${canEdit?`onclick="setDesig('${t.id}','${v}',this)"`:' disabled'}>${v}</button>`).join('');
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${t.name}</strong><br><span style="font-size:10px;color:var(--gm);">${t.dept||'-'} | ${t.unit||'-'}</span></td>
+      <td>${t.roll}</td>
+      <td style="font-size:12px;">${tm?tm.name:'-'}</td>
+      <td style="white-space:nowrap;">${btns}</td>
+      <td>${canEdit?`<input type="date" id="pdop1-${t.id}" value="${t.dop1||''}"
+        style="border:1px solid #d0d8e4;border-radius:7px;padding:5px 8px;font-size:12px;width:130px;">`:t.dop1?fmt(t.dop1):'-'}</td>
+      <td>${canEdit?`<input type="date" id="pdop2-${t.id}" value="${t.dop2||''}"
+        style="border:1px solid #d0d8e4;border-radius:7px;padding:5px 8px;font-size:12px;width:130px;"
+        ${d==='Tr'?'disabled title="Upgrade to Sr.Tr. first"':''}>`:t.dop2?fmt(t.dop2):'-'}</td>
+      <td>${canEdit?`<button class="btn btn-success btn-sm" onclick="savePromoDOP('${t.id}')">Save</button>`:''}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--gm);">No trainees found.</td></tr>';
+}
+
+function savePromoDOP(tid){
+  const t=TRAINEES.find(x=>x.id===tid);if(!t)return;
+  const d1=document.getElementById('pdop1-'+tid);
+  const d2=document.getElementById('pdop2-'+tid);
+  if(d1) t.dop1=d1.value;
+  if(d2) t.dop2=d2.value;
+  if(t.dop1&&t.dop2&&t.dop2<t.dop1){alert('2nd DOP cannot be before 1st DOP.');t.dop2='';renderPromotion();return;}
+  saveTrainees();renderPromotion();renderTR();
+  showSync('saved','Promotion dates saved for '+t.name);
+}
+
+function updatePendingArchiveBadge(){
+  const count=PENDING_ARCHIVE.length;
+  const badge=document.getElementById('pending-archive-badge');
+  if(badge){badge.style.display=count>0?'':'none';badge.textContent=count;}
+}
+
+function renderPendingArchive(){
+  const card=document.getElementById('dash-pending-archive');
+  const tbody=document.getElementById('pending-archive-tbody');
+  const countEl=document.getElementById('dash-pending-count');
+  if(!card||!tbody) return;
+  if(currentUser.role==='tm'){card.style.display='none';return;}
+  if(!PENDING_ARCHIVE.length){card.style.display='none';return;}
+  card.style.display='';
+  if(countEl) countEl.textContent=PENDING_ARCHIVE.length+' pending';
+  tbody.innerHTML=PENDING_ARCHIVE.map((p,i)=>{
+    const tm=MASTERS.find(m=>m.id===p.masterId);
+    return `<tr>
+      <td>${i+1}</td><td><strong>${p.traineeName}</strong></td><td>${p.roll}</td>
+      <td style="font-size:12px;">${p.dept||'-'}</td><td style="font-size:12px;">${p.unit||'-'}</td>
+      <td style="font-size:12px;">${tm?tm.name:'-'}</td>
+      <td><span class="badge badge-orange">${p.reason}</span></td>
+      <td style="font-size:11px;color:var(--gm);">${p.remark||'-'}</td>
+      <td style="font-size:11px;">${fmt(p.requestDate)}<br><span style="color:var(--gm);">${p.requestedBy}</span></td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-success btn-sm" onclick="approveArchive('${p.id}')">Approve</button>
+        <button class="btn btn-danger btn-sm" onclick="rejectArchive('${p.id}')" style="margin-top:4px;">Reject</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function approveArchive(pendingId){
+  if(currentUser.role==='tm'){alert('Only Admin or Training Officer can approve.');return;}
+  const p=PENDING_ARCHIVE.find(x=>x.id===pendingId);if(!p)return;
+  const t=TRAINEES.find(x=>x.id===p.traineeId);
+  if(!t){PENDING_ARCHIVE=PENDING_ARCHIVE.filter(x=>x.id!==pendingId);savePendingArchive();renderDashboard();return;}
+  if(!confirm('Approve archive request for '+p.traineeName+'?'))return;
+  const ae={...t,archiveReason:p.reason,archiveDate:p.requestDate,
+    archiveRemark:p.remark,archivedBy:currentUser.name+' (approved '+p.requestedBy+')',archivedRole:currentUser.role};
+  ARCHIVED.push(ae);
+  TRAINEES=TRAINEES.filter(x=>x.id!==p.traineeId);
+  PENDING_ARCHIVE=PENDING_ARCHIVE.filter(x=>x.id!==pendingId);
+  saveTrainees();saveArchived();savePendingArchive();
+  updatePendingArchiveBadge();renderDashboard();renderTR();updateArchivedCount();
+  logActivity('ARCHIVE','Archive approved: '+p.traineeName+' ('+p.roll+') by '+currentUser.name);
+}
+
+function rejectArchive(pendingId){
+  if(currentUser.role==='tm'){alert('Only Admin or Training Officer can reject.');return;}
+  const p=PENDING_ARCHIVE.find(x=>x.id===pendingId);if(!p)return;
+  if(!confirm('Reject archive request for '+p.traineeName+'? Trainee stays active.'))return;
+  PENDING_ARCHIVE=PENDING_ARCHIVE.filter(x=>x.id!==pendingId);
+  savePendingArchive();updatePendingArchiveBadge();renderDashboard();renderTR();
+  logActivity('ARCHIVE_REJECTED','Archive request rejected: '+p.traineeName+' ('+p.roll+')');
 }
 
 function initActivityLog(){
