@@ -3346,7 +3346,6 @@ function renderDesig(){
 
 function setDesig(tid,val,btn){
   const t=TRAINEES.find(x=>x.id===tid);if(!t)return;
-  // Enforce progression: can only promote, not demote (unless admin)
   const order={'Tr':0,'Sr.Tr.':1,'FTW':2};
   const cur=order[t.desig||'Tr']||0;
   const next=order[val]||0;
@@ -3354,10 +3353,30 @@ function setDesig(tid,val,btn){
     alert('Designation can only be upgraded, not downgraded. Contact Admin to revert.');return;
   }
   t.desig=val;
-  // Auto-set DOP dates when designation changes
   const todayStr=today();
   if(val==='Sr.Tr.' && !t.dop1) t.dop1=todayStr;
   if(val==='FTW' && !t.dop2) t.dop2=todayStr;
+
+  // Immediately update button colours in the row — no wait for re-render
+  if(btn){
+    const dc={'Tr':'var(--gm)','Sr.Tr.':'var(--blue)','FTW':'var(--green)'};
+    const allBtns=btn.parentElement.querySelectorAll('button');
+    allBtns.forEach(b=>{
+      const bval=b.textContent.trim();
+      if(dc[bval]){
+        const active=bval===val;
+        b.style.background=active?dc[bval]:'transparent';
+        b.style.color=active?'#fff':dc[bval];
+      }
+    });
+    // Enable/disable 2nd DOP input based on new designation
+    const row=btn.closest('tr');
+    if(row){
+      const dop2=row.querySelector('[id^="pdop2-"]');
+      if(dop2) dop2.disabled=(val==='Tr');
+    }
+  }
+
   saveTrainees();
   renderDesig();renderTR();renderPromotion();
 }
