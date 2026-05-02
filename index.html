@@ -5049,6 +5049,9 @@ function renderDevices(){
   // Show/hide device check toggle
   const toggleEl=document.getElementById('device-check-toggle');
   if(toggleEl) toggleEl.checked=DEVICE_CHECK_ENABLED;
+  // Always update label text to match current state
+  const labelEl=document.getElementById('device-check-label');
+  if(labelEl) labelEl.textContent=DEVICE_CHECK_ENABLED?'ON':'OFF';
 }
 
 function approveThisDevice(){
