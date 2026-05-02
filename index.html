@@ -337,7 +337,7 @@ tr:hover td{background:#f8fafc;}
     </div>
 
     <!-- RECORD TRAINING FORM -->
-    <div class="collapsible-form" id="ct-form">
+    <div class="collapsible-form" id="ct-form" style="display:none;">
       <div class="card">
         <div class="card-hd"><h3 id="ct-form-title">📚 Record Class Training Session</h3></div>
         <div class="card-body">
@@ -2693,12 +2693,12 @@ function toggleCTForm(){
   const form = document.getElementById('ct-form');
   const btn = document.getElementById('ct-record-btn');
   if(!form) return;
-  const isOpen = form.classList.contains('open');
+  const isOpen = form.style.display !== 'none' && form.style.display !== '';
   if(isOpen){
-    form.classList.remove('open');
+    form.style.display = 'none';
     if(btn) btn.textContent = '➕ Record Training Session';
   } else {
-    form.classList.add('open');
+    form.style.display = 'block';
     if(btn) btn.textContent = '✖ Close Form';
     const dateEl = document.getElementById('ct-date');
     if(dateEl && !dateEl.value) dateEl.value = today();
@@ -2709,7 +2709,7 @@ function toggleCTForm(){
 function initClassTraining(){
   // Always close form on tab switch
   const form = document.getElementById('ct-form');
-  if(form) form.classList.remove('open');
+  if(form) form.style.display = 'none';
   const btn = document.getElementById('ct-record-btn');
   if(btn) btn.textContent = '➕ Record Training Session';
   // Populate trainer dropdown
@@ -2993,6 +2993,15 @@ function renderCTGrid(){
   });
 }
 
+function toggleCTDetail(id){
+  const div = document.getElementById(id);
+  const btn = document.getElementById('btn-'+id);
+  if(!div) return;
+  const isOpen = div.style.display !== 'none';
+  div.style.display = isOpen ? 'none' : '';
+  if(btn) btn.textContent = isOpen ? '▼ Details' : '▲ Hide';
+}
+
 function exportCTGrid(){
   const ctm = getCTMaster();
   if(!ctm){alert('No Training Officer TM found.');return;}
@@ -3018,14 +3027,19 @@ function exportCTGrid(){
 }
 // Get CT training summary for a trainee (for reports)
 function getCTSummary(traineeId){
-  const sessions = CLASS_TRAINING.filter(r=>r.traineeId===traineeId);
+  const sessions = CLASS_TRAINING.filter(r=>String(r.traineeId).trim()===String(traineeId).trim());
   if(!sessions.length) return null;
   const byCategory = {};
+  const allSessions = [...sessions].sort((a,b)=>b.date.localeCompare(a.date));
   sessions.forEach(r=>{
     if(!byCategory[r.category]) byCategory[r.category]=[];
     if(!byCategory[r.category].includes(r.topic)) byCategory[r.category].push(r.topic);
   });
-  return {total: Object.values(byCategory).reduce((s,t)=>s+t.length,0), byCategory};
+  return {
+    total: Object.values(byCategory).reduce((s,t)=>s+t.length,0),
+    byCategory,
+    sessions: allSessions // full session history for expand view
+  };
 }
 
 function exportCTHistory(){
@@ -4554,10 +4568,15 @@ function renderReport(){
   const trSel=document.getElementById('rpt-tr');
   const curTr=trSel.value;
   trSel.innerHTML='<option value="">All Trainees</option>';
-  let list=tmF?TRAINEES.filter(t=>t.masterId===tmF):TRAINEES;
+  // Include both active and archived trainees in reports
+  const allTrainees = [...TRAINEES, ...ARCHIVED];
+  let list=tmF?allTrainees.filter(t=>t.masterId===tmF):allTrainees;
   if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
-  list.forEach(t=>trSel.innerHTML+=`<option value="${t.id}" ${curTr===t.id?'selected':''}>${t.name} (${t.roll})</option>`);
-  if(trF)list=list.filter(t=>t.id===trF);
+  list.forEach(t=>{
+    const isArchived=ARCHIVED.some(a=>a.id===t.id);
+    trSel.innerHTML+=`<option value="${t.id}" ${curTr===t.id?'selected':''}>${t.name} (${t.roll})${isArchived?' [Archived]':''}</option>`;
+  });
+  if(trF)list=list.filter(t=>t.id===trF); // works for both active and archived
   const out=document.getElementById('report-output');
   if(!list.length){out.innerHTML='<div class="card"><div class="card-body" style="text-align:center;color:var(--gm);">No trainees found for selected filter.</div></div>';return;}
   const rows=list.map(t=>{
@@ -4575,10 +4594,33 @@ function renderReport(){
       <td><span class="badge ${avgDisc==='A'?'badge-green':avgDisc==='B'?'badge-blue':avgDisc==='C'?'badge-orange':avgDisc==='D'?'badge-red':'badge-grey'}">${avgDisc}</span></td>
       <td style="text-align:center;font-weight:700;">${allTests.length}</td>
       <td style="min-width:220px;">${last3Html(t.id)}</td>
-      ${(()=>{const ct=getCTSummary(t.id);return ct?`<td style="min-width:180px;font-size:12px;">
-        <strong style="color:var(--navy);">${ct.total} topic${ct.total!==1?'s':''} covered</strong><br>
-        ${Object.entries(ct.byCategory).map(([c,topics])=>`<span style="color:var(--gm);font-size:11px;">${c}: ${topics.length}</span>`).join(' | ')}
-        </td>`:'<td style="color:var(--gm);font-size:12px;">—</td>';})()}
+      ${(()=>{
+        const ct=getCTSummary(t.id);
+        if(!ct) return '<td style="color:var(--gm);font-size:12px;text-align:center;">—</td>';
+        const detailId='ct-detail-'+t.id;
+        return `<td style="min-width:180px;font-size:12px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <strong style="color:var(--navy);">${ct.total} topic${ct.total!==1?'s':''} covered</strong>
+            <button onclick="toggleCTDetail('${detailId}')"
+              style="font-size:10px;padding:2px 8px;background:#e8f0f7;border:1px solid #c0d0e0;
+              border-radius:10px;cursor:pointer;color:var(--navy);" id="btn-${detailId}">▼ Details</button>
+          </div>
+          <div style="font-size:11px;color:var(--gm);">
+            ${Object.entries(ct.byCategory).map(([c,topics])=>`${c}: ${topics.length}`).join(' | ')}
+          </div>
+          <div id="${detailId}" style="display:none;margin-top:8px;border-top:1px solid #e0e7ef;padding-top:8px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+              <tr style="background:#f0f4f8;"><th style="padding:4px 6px;text-align:left;">Date</th><th style="padding:4px 6px;text-align:left;">Category</th><th style="padding:4px 6px;text-align:left;">Topic</th><th style="padding:4px 6px;text-align:left;">Trainer</th></tr>
+              ${ct.sessions.map(s=>`<tr style="border-bottom:1px solid #f0f4f8;">
+                <td style="padding:4px 6px;white-space:nowrap;">${fmt(s.date)}</td>
+                <td style="padding:4px 6px;"><span style="background:${s.category==='General Topics'?'#dbeafe':'#dcfce7'};padding:2px 6px;border-radius:8px;font-size:10px;">${s.category==='General Topics'?'General':'Domain'}</span></td>
+                <td style="padding:4px 6px;">${s.topic}</td>
+                <td style="padding:4px 6px;color:var(--gm);">${s.trainer}</td>
+              </tr>`).join('')}
+            </table>
+          </div>
+        </td>`;
+      })()}
     </tr>`;
   }).join('');
   out.innerHTML=`<div class="card"><div class="card-hd"><h3>Trainee Performance Report</h3><span>${list.length} trainees</span></div>
