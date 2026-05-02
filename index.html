@@ -2360,6 +2360,24 @@ function renderDashboard(){
   const myTrainees=(currentUser.role==='admin'||currentUser.role==='to')?TRAINEES:TRAINEES.filter(t=>t.masterId===currentUser.tmId);
   const present=myTrainees.filter(t=>attToday[t.id]==='P').length;
   const absent=myTrainees.filter(t=>attToday[t.id]==='A').length;
+  const weeklyOff=myTrainees.filter(t=>isOffDay(todayStr,t.woff)).length;
+
+  // Latest week discipline grades — from most recent week with entries
+  const discWeeks=Object.keys(DISCIPLINE).sort().reverse();
+  let gradeA=0,gradeB=0,gradeC=0,gradeD=0,gradeWeekLabel='';
+  if(discWeeks.length){
+    const latestWeek=discWeeks[0];
+    gradeWeekLabel=fmt(latestWeek);
+    const weekData=DISCIPLINE[latestWeek]||{};
+    myTrainees.forEach(t=>{
+      const g=weekData[t.id];
+      if(!g||!g.grade) return;
+      if(g.grade==='A') gradeA++;
+      else if(g.grade==='B') gradeB++;
+      else if(g.grade==='C') gradeC++;
+      else if(g.grade==='D') gradeD++;
+    });
+  }
   const ctm=getCTMaster();
   const ctCount=ctm?TRAINEES.filter(t=>t.masterId===ctm.id).length:0;
 
@@ -2377,7 +2395,17 @@ function renderDashboard(){
     <div class="stat-card"><div class="stat-num">${myTrainees.length}</div><div class="stat-lbl">Total Trainees<br><span style="font-size:11px;color:var(--gm);">incl. ${ctCount} Class Trainees</span></div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--green)">${present}</div><div class="stat-lbl">Present Today</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--red)">${absent}</div><div class="stat-lbl">Absent Today</div></div>
-    <div class="stat-card"><div class="stat-num">${MCQ_RESULTS.length}</div><div class="stat-lbl">Tests Taken</div></div>`;
+    <div class="stat-card"><div class="stat-num" style="color:var(--gm)">${weeklyOff}</div><div class="stat-lbl">Weekly Off Today</div></div>
+    <div class="stat-card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;text-align:center;margin-bottom:4px;">
+        <span style="font-size:14px;font-weight:700;color:var(--green);">A: ${gradeA}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--blue);">B: ${gradeB}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--orange);">C: ${gradeC}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--red);">D: ${gradeD}</span>
+      </div>
+      <div class="stat-lbl">Discipline Grades</div>
+    </div>
+`;
 
   // ── Training Masters panel ──
   const tmListEl=document.getElementById('dash-tm-list');
