@@ -699,35 +699,7 @@ tr:hover td{background:#f8fafc;}
     </div>
 
     <!-- DESIGNATION & DOP ENTRY — editable by Training Masters -->
-    <div class="card" id="desig-card" style="display:none;">
-      <div class="card-hd">
-        <h3>🏷️ Designation &amp; Date of Promotion Entry</h3>
-        <span id="desig-tm-label">Select Training Master filter to begin</span>
-      </div>
-      <div class="card-body" style="padding:0;">
-        <p style="padding:12px 16px 0;font-size:12px;color:var(--gm);">Training Masters: set designation and promotion dates for your trainees. Changes save immediately on clicking 💾.</p>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr>
-              <th>#</th><th>Name</th><th>Roll No.</th><th>Training Master</th>
-              <th>Designation</th>
-              <th>1st DOP <small style="font-weight:400;">(Tr→Sr.Tr.)</small></th>
-              <th>2nd DOP <small style="font-weight:400;">(Sr.Tr.→FTW)</small></th>
-              <th>Save</th>
-            </tr></thead>
-            <tbody id="desig-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ATTENDANCE -->
-  <div class="page" id="page-attendance">
-    <div class="section-hd"><h2>📅 Attendance</h2></div>
-    <div id="to-att-notice" style="display:none;background:#fdf3e3;border-left:4px solid var(--orange);border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:13px;color:var(--orange);">
-      👁️ <strong>View Only:</strong> Training Officers can view attendance but cannot mark or edit it.
-    </div>
+    
     <!-- TAB BAR -->
     <div style="display:flex;gap:0;margin-bottom:16px;border-radius:10px;overflow:hidden;border:1.5px solid var(--navy);width:fit-content;">
       <button id="att-tab-daily" onclick="switchAttTab('daily')" style="padding:10px 22px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:var(--navy);color:#fff;">📋 Daily Entry</button>
@@ -3387,7 +3359,7 @@ function setDesig(tid,val,btn){
   if(val==='Sr.Tr.' && !t.dop1) t.dop1=todayStr;
   if(val==='FTW' && !t.dop2) t.dop2=todayStr;
   saveTrainees();
-  renderDesig();renderTR();
+  renderDesig();renderTR();renderPromotion();
 }
 
 function saveDesig(tid){
