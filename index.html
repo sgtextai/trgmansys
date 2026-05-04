@@ -658,7 +658,7 @@ tr:hover td{background:#f8fafc;}
       </div>
       <div class="btn-group">
         <button class="btn btn-primary" onclick="saveTR()">💾 Save</button>
-        <button class="btn btn-light" onclick="toggleForm('tr-form')">Cancel</button>
+        <button class="btn btn-light" onclick="resetTRForm()">Cancel</button>
       </div>
     </div>
     <div class="search-bar">
@@ -3312,23 +3312,105 @@ function editTR(id){
   document.getElementById('tr-form').scrollIntoView({behavior:'smooth'});
 }
 function saveTR(){
-  const name=document.getElementById('tr-f-name').value.trim();
-  const roll=document.getElementById('tr-f-roll').value.trim();
-  if(!name||!roll){alert('Name and Roll No. are required.');return;}
-  // TO can add new trainees but cannot edit existing ones
-  // TO can add and edit trainees
-  const doj=document.getElementById('tr-f-doj').value;
-  const obj={name,roll,dept:document.getElementById('tr-f-dept').value,doj,masterId:document.getElementById('tr-f-tm').value,phone:document.getElementById('tr-f-phone').value.trim(),unit:document.getElementById('tr-f-unit').value,woff:parseInt(document.getElementById('tr-f-woff').value)};
+  const name  = document.getElementById('tr-f-name').value.trim();
+  const roll  = document.getElementById('tr-f-roll').value.trim();
+  const unit  = document.getElementById('tr-f-unit').value;
+  const dept  = document.getElementById('tr-f-dept').value;
+  const doj   = document.getElementById('tr-f-doj').value;
+  const tm    = document.getElementById('tr-f-tm').value;
+  const woff  = document.getElementById('tr-f-woff').value;
+  const phone = document.getElementById('tr-f-phone').value.trim();
+
+  // ── Mandatory field validation ──
+  const missing = [];
+  if(!name)  missing.push('Full Name');
+  if(!roll)  missing.push('Roll No.');
+  if(!unit)  missing.push('Unit');
+  if(!dept)  missing.push('Department');
+  if(!doj)   missing.push('Date of Joining');
+  if(!tm)    missing.push('Training Master');
+  if(woff===''||woff===undefined) missing.push('Weekly Off Day');
+
+  if(missing.length){
+    alert('Please fill the following required fields:
+• '+missing.join('
+• '));
+    return;
+  }
+
+  // ── Duplicate Roll No. check (active + archived) ──
+  if(!editingTR){
+    const dupActive   = TRAINEES.find(t=>String(t.roll).trim()===String(roll).trim());
+    const dupArchived = ARCHIVED.find(t=>String(t.roll).trim()===String(roll).trim());
+    if(dupActive){
+      alert('Roll No. '+roll+' already exists in active trainees list.
+Trainee: '+dupActive.name+'
+Please use a different Roll No.');
+      return;
+    }
+    if(dupArchived){
+      alert('Roll No. '+roll+' already exists in archived trainees list.
+Trainee: '+dupArchived.name+' (Archived on '+fmt(dupArchived.archiveDate)+').
+This Roll No. cannot be reused.');
+      return;
+    }
+  } else {
+    // Editing — check duplicate only if roll changed
+    const original = TRAINEES.find(x=>x.id===editingTR);
+    if(original && String(original.roll).trim()!==String(roll).trim()){
+      const dupActive   = TRAINEES.find(t=>String(t.roll).trim()===String(roll).trim() && t.id!==editingTR);
+      const dupArchived = ARCHIVED.find(t=>String(t.roll).trim()===String(roll).trim());
+      if(dupActive){
+        alert('Roll No. '+roll+' already exists.
+Trainee: '+dupActive.name);
+        return;
+      }
+      if(dupArchived){
+        alert('Roll No. '+roll+' exists in archived list.
+Trainee: '+dupArchived.name+' (Archived).');
+        return;
+      }
+    }
+  }
+
+  const obj={name,roll,dept,doj,masterId:tm,phone,unit,woff:parseInt(woff)};
+
   if(editingTR){
     const t=TRAINEES.find(x=>x.id===editingTR);
-    if(t){Object.assign(t,obj);}  // preserve existing desig/dop fields
+    if(t){Object.assign(t,obj);}
     editingTR=null;
   } else {
-    // New trainee: default designation = Trainee, 1st DOP = joining date
-    TRAINEES.push({id:uid(),...obj,desig:'Tr',dop1:doj,dop2:'',unit:obj.unit||'',woff:obj.woff!==undefined?obj.woff:0});
+    TRAINEES.push({id:uid(),...obj,desig:'Tr',dop1:doj,dop2:'',woff:parseInt(woff)});
   }
-  saveTrainees();renderTR();renderDesig();toggleForm('tr-form');
+
+  saveTrainees();renderTR();renderDesig();
+
+  // ── Collapse form and reset all fields ──
+  resetTRForm();
   document.getElementById('tr-form-title').textContent='Add Trainee';
+}
+
+function resetTRForm(){
+  // Collapse form
+  const form=document.getElementById('tr-form');
+  if(form) form.classList.remove('open');
+  // Reset all fields to default
+  document.getElementById('tr-f-name').value='';
+  document.getElementById('tr-f-roll').value='';
+  document.getElementById('tr-f-phone').value='';
+  document.getElementById('tr-f-doj').value='';
+  // Reset unit and dept dropdowns
+  const unitSel=document.getElementById('tr-f-unit');
+  if(unitSel) unitSel.value='';
+  const deptSel=document.getElementById('tr-f-dept');
+  if(deptSel){deptSel.innerHTML='<option value="">-- Select Unit first --</option>';}
+  // Reset TM dropdown to first option
+  const tmSel=document.getElementById('tr-f-tm');
+  if(tmSel) tmSel.value='';
+  // Reset weekly off to Sunday (default)
+  const woffSel=document.getElementById('tr-f-woff');
+  if(woffSel) woffSel.value='0';
+  editingTR=null;
 }
 function deleteTR(id){
   if(!adminOnly())return;
