@@ -2527,10 +2527,14 @@ function renderDashboard(){
 // ══════════════════════════════════════════════════════
 function toggleForm(id){
   const f=document.getElementById(id);
-  f.classList.toggle('open');
-  // Populate unit dropdown when TR form opens
-  if(id==='tr-form' && f.classList.contains('open')){
-    populateTRUnitDropdown();
+  const isOpen = f.classList.contains('open');
+  if(isOpen){
+    f.classList.remove('open');
+    f.style.display='none';
+  } else {
+    f.classList.add('open');
+    f.style.display=''; // restore to CSS default (block via .form-panel.open)
+    if(id==='tr-form') populateTRUnitDropdown();
   }
 }
 function renderTM(){
@@ -3383,9 +3387,12 @@ function saveTR(){
 }
 
 function resetTRForm(){
-  // Collapse form
+  // Collapse form — use both methods to ensure it closes reliably
   const form=document.getElementById('tr-form');
-  if(form) form.classList.remove('open');
+  if(form){
+    form.classList.remove('open');
+    form.style.display='none'; // force hide as backup
+  }
   // Reset all fields to default
   document.getElementById('tr-f-name').value='';
   document.getElementById('tr-f-roll').value='';
