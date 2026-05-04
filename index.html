@@ -3332,9 +3332,7 @@ function saveTR(){
   if(woff===''||woff===undefined) missing.push('Weekly Off Day');
 
   if(missing.length){
-    alert('Please fill the following required fields:
-• '+missing.join('
-• '));
+    alert('Please fill all required fields: ' + missing.join(', '));
     return;
   }
 
@@ -3343,15 +3341,11 @@ function saveTR(){
     const dupActive   = TRAINEES.find(t=>String(t.roll).trim()===String(roll).trim());
     const dupArchived = ARCHIVED.find(t=>String(t.roll).trim()===String(roll).trim());
     if(dupActive){
-      alert('Roll No. '+roll+' already exists in active trainees list.
-Trainee: '+dupActive.name+'
-Please use a different Roll No.');
+      alert('Roll No. ' + roll + ' already exists. Trainee: ' + dupActive.name + '. Please use a different Roll No.');
       return;
     }
     if(dupArchived){
-      alert('Roll No. '+roll+' already exists in archived trainees list.
-Trainee: '+dupArchived.name+' (Archived on '+fmt(dupArchived.archiveDate)+').
-This Roll No. cannot be reused.');
+      alert('Roll No. ' + roll + ' exists in archived list. Trainee: ' + dupArchived.name + ' (Archived on ' + fmt(dupArchived.archiveDate) + '). This Roll No. cannot be reused.');
       return;
     }
   } else {
@@ -3361,13 +3355,11 @@ This Roll No. cannot be reused.');
       const dupActive   = TRAINEES.find(t=>String(t.roll).trim()===String(roll).trim() && t.id!==editingTR);
       const dupArchived = ARCHIVED.find(t=>String(t.roll).trim()===String(roll).trim());
       if(dupActive){
-        alert('Roll No. '+roll+' already exists.
-Trainee: '+dupActive.name);
+        alert('Roll No. ' + roll + ' already exists. Trainee: ' + dupActive.name);
         return;
       }
       if(dupArchived){
-        alert('Roll No. '+roll+' exists in archived list.
-Trainee: '+dupArchived.name+' (Archived).');
+        alert('Roll No. ' + roll + ' exists in archived list. Trainee: ' + dupArchived.name + ' (Archived).');
         return;
       }
     }
