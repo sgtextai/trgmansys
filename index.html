@@ -807,6 +807,7 @@ tr:hover td{background:#f8fafc;}
         <div class="form-grid" style="grid-template-columns:auto auto;">
           <div class="form-field"><label>Week Starting</label><input type="date" id="disc-week" onchange="renderDisc()"></div>
           <div class="form-field"><label>Training Master</label><select id="disc-tm-filter" onchange="renderDisc()"><option value="">All</option></select></div>
+          <div class="form-field"><label>Filter by Grade</label><select id="disc-grade-filter" onchange="renderDisc()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;"><option value="">All Grades</option><option value="A">A — Excellent</option><option value="B">B — Good</option><option value="C">C — Average</option><option value="D">D — Poor</option></select></div>
         </div>
         <p style="font-size:12px;color:var(--gm);">Rate each trainee's discipline for the week: A = Excellent | B = Good | C = Average | D = Poor</p>
       </div>
@@ -4470,10 +4471,12 @@ function initDisc(){
 function renderDisc(){
   const week=document.getElementById('disc-week').value;
   const tmF=document.getElementById('disc-tm-filter').value;
+  const gradeF=(document.getElementById('disc-grade-filter')||{}).value||'';
   if(!DISCIPLINE[week])DISCIPLINE[week]={};
   let list=TRAINEES;
   if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
   if(tmF)list=list.filter(t=>t.masterId===tmF);
+  if(gradeF)list=list.filter(t=>(weekData[t.id]||{}).grade===gradeF);
   const tbody=document.getElementById('disc-tbody');
   tbody.innerHTML=list.map((t,i)=>{
     const tm=MASTERS.find(m=>m.id===t.masterId);
