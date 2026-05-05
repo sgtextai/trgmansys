@@ -2534,7 +2534,12 @@ function toggleForm(id){
   } else {
     f.classList.add('open');
     f.style.display=''; // restore to CSS default (block via .form-panel.open)
-    if(id==='tr-form') populateTRUnitDropdown();
+    if(id==='tr-form'){
+      populateTRUnitDropdown();
+      // Restrict DOJ to today or earlier
+      const dojEl=document.getElementById('tr-f-doj');
+      if(dojEl) dojEl.max=today();
+    }
   }
 }
 function renderTM(){
@@ -3379,11 +3384,10 @@ function saveTR(){
     TRAINEES.push({id:uid(),...obj,desig:'Tr',dop1:doj,dop2:'',woff:parseInt(woff)});
   }
 
-  saveTrainees();renderTR();renderDesig();
-
-  // ── Collapse form and reset all fields ──
+  // ── Collapse form and reset fields FIRST — before any rendering ──
   resetTRForm();
   document.getElementById('tr-form-title').textContent='Add Trainee';
+  saveTrainees();renderTR();renderDesig();
 }
 
 function resetTRForm(){
@@ -3397,7 +3401,8 @@ function resetTRForm(){
   document.getElementById('tr-f-name').value='';
   document.getElementById('tr-f-roll').value='';
   document.getElementById('tr-f-phone').value='';
-  document.getElementById('tr-f-doj').value='';
+  const dojEl=document.getElementById('tr-f-doj');
+  if(dojEl){dojEl.value='';dojEl.max=today();}
   // Reset unit and dept dropdowns
   const unitSel=document.getElementById('tr-f-unit');
   if(unitSel) unitSel.value='';
