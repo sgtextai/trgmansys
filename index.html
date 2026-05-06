@@ -4622,9 +4622,7 @@ function revokeDisc(tid){
   const recs=DISCIPLINE[tid]||[];
   if(!recs.length){alert('No grade to revoke.');return;}
   const latest=recs[recs.length-1];
-  if(!confirm('Revoke grade '+latest.grade+' for '+t.name+' (dated '+fmt(latest.date)+')?
-
-Next grading window will be based on previous grade date.'))return;
+  if(!confirm('Revoke grade '+latest.grade+' for '+t.name+' (dated '+fmt(latest.date)+')?. Next grading window will be based on previous grade date.'))return;
   DISCIPLINE[tid].pop();
   saveDiscipline();
   renderDisc();
