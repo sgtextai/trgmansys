@@ -805,16 +805,15 @@ tr:hover td{background:#f8fafc;}
     <div class="card">
       <div class="card-body">
         <div class="form-grid" style="grid-template-columns:auto auto;">
-          <div class="form-field"><label>Week Starting</label><input type="date" id="disc-week" onchange="renderDisc()"></div>
           <div class="form-field"><label>Training Master</label><select id="disc-tm-filter" onchange="renderDisc()"><option value="">All</option></select></div>
-          <div class="form-field"><label>Filter by Grade</label><select id="disc-grade-filter" onchange="renderDisc()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;"><option value="">All Grades</option><option value="A">A — Excellent</option><option value="B">B — Good</option><option value="C">C — Average</option><option value="D">D — Poor</option></select></div>
+          <div class="form-field"><label>Filter by Current Grade</label><select id="disc-grade-filter" onchange="renderDisc()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;"><option value="">All Grades</option><option value="A">A — Excellent</option><option value="B">B — Good</option><option value="C">C — Average</option><option value="D">D — Poor</option><option value="PENDING">Pending (not graded)</option></select></div>
         </div>
-        <p style="font-size:12px;color:var(--gm);">Rate each trainee's discipline for the week: A = Excellent | B = Good | C = Average | D = Poor</p>
+        <p style="font-size:12px;color:var(--gm);">Grade each trainee every 15 days from DOJ. First grade after 15 days from joining. A = Excellent | B = Good | C = Average | D = Poor</p>
       </div>
     </div>
     <div class="card">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>#</th><th>Trainee Name</th><th>Roll No.</th><th>Training Master</th><th>Week Grade</th><th>Remarks</th><th>Save</th></tr></thead>
+        <thead><tr><th>#</th><th>Trainee Name</th><th>Roll No.</th><th>Training Master</th><th>DOJ</th><th>Next Grading From</th><th>Current Grade</th><th>Last Graded</th><th>Remarks</th><th>Action</th></tr></thead>
         <tbody id="disc-tbody"></tbody>
       </table></div>
     </div>
@@ -1733,7 +1732,7 @@ let DEPT_UNITS=LS.get('smpl_dept_units',JSON.parse(JSON.stringify(DEFAULT_DEPT_U
 function saveDeptUnits(){ gsSync('saveDeptUnits',DEPT_UNITS,'smpl_dept_units',DEPT_UNITS); }    // [{...traineeFields, archiveReason, archiveRemark, archiveDate}]
 let ACTIVITY_LOG=LS.get('smpl_log',[]);     // [{id,ts,user,role,deviceCode,action,details}]
 let ATTENDANCE=LS.get('smpl_att',{});       // {"YYYY-MM-DD":{"traineeId":"P"|"A"}}
-let DISCIPLINE=LS.get('smpl_disc',{});      // {"YYYY-MM-DD":{"traineeId":{grade,remark}}}
+let DISCIPLINE=LS.get('smpl_disc',{});      // {traineeId:[{grade,date,remark,gradedBy,gradedRole}]}
 let MCQ_RESULTS=LS.get('smpl_results',[]);  // [{date,traineeId,traineeName,roll,paper,correct,total,pct,grade,timeTaken}]
 let ADMIN_PWD=LS.get('smpl_admin_pwd','SMPL2024');
 let TM_DEFAULT_PWD=LS.get('smpl_tm_pwd','TM2024');
@@ -1938,7 +1937,7 @@ async function loadFromGoogleSheets(){
       TRAINEES     = data.trainees     || [];
       ARCHIVED     = data.archived     || [];
       ATTENDANCE   = data.attendance   || {};
-      DISCIPLINE   = data.discipline   || {};
+      DISCIPLINE   = data.discipline   || {};  // {traineeId:[{grade,date,remark,gradedBy,gradedRole}]}
       MCQ_RESULTS  = data.results      || [];
       ACTIVITY_LOG = data.log          || [];
       // Fix CLASS_TRAINING — ensure dates are strings and roll numbers clean
@@ -2369,22 +2368,17 @@ function renderDashboard(){
   const absent=myTrainees.filter(t=>attToday[t.id]==='A').length;
   const weeklyOff=myTrainees.filter(t=>isOffDay(todayStr,t.woff)).length;
 
-  // Latest week discipline grades — from most recent week with entries
-  const discWeeks=Object.keys(DISCIPLINE).sort().reverse();
-  let gradeA=0,gradeB=0,gradeC=0,gradeD=0,gradeWeekLabel='';
-  if(discWeeks.length){
-    const latestWeek=discWeeks[0];
-    gradeWeekLabel=fmt(latestWeek);
-    const weekData=DISCIPLINE[latestWeek]||{};
-    myTrainees.forEach(t=>{
-      const g=weekData[t.id];
-      if(!g||!g.grade) return;
-      if(g.grade==='A') gradeA++;
-      else if(g.grade==='B') gradeB++;
-      else if(g.grade==='C') gradeC++;
-      else if(g.grade==='D') gradeD++;
-    });
-  }
+  // Current grades — latest grade per trainee (new 15-day structure)
+  let gradeA=0,gradeB=0,gradeC=0,gradeD=0;
+  myTrainees.forEach(t=>{
+    const recs=(DISCIPLINE[t.id]||[]);
+    if(!recs.length) return;
+    const latest=recs[recs.length-1];
+    if(latest.grade==='A') gradeA++;
+    else if(latest.grade==='B') gradeB++;
+    else if(latest.grade==='C') gradeC++;
+    else if(latest.grade==='D') gradeD++;
+  });
   const ctm=getCTMaster();
   const ctCount=ctm?TRAINEES.filter(t=>t.masterId===ctm.id).length:0;
 
@@ -4453,69 +4447,205 @@ function exportAtt(){
 }
 
 // ══════════════════════════════════════════════════════
-// DISCIPLINE
+// DISCIPLINE — 15-day cycle from DOJ
 // ══════════════════════════════════════════════════════
+
+// Get all grade records for a trainee (sorted oldest first)
+function getDiscRecords(tid){
+  return (DISCIPLINE[tid]||[]).sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+// Get latest grade record for a trainee
+function getLatestDisc(tid){
+  const recs=getDiscRecords(tid);
+  return recs.length?recs[recs.length-1]:null;
+}
+
+// Calculate next grading date for a trainee
+// First grade: 15 days after DOJ
+// Subsequent: 15 days after last grading date
+function getNextGradingDate(trainee){
+  const recs=getDiscRecords(trainee.id);
+  let baseDate;
+  if(!recs.length){
+    // No grades yet — first grade allowed 15 days after DOJ
+    if(!trainee.doj) return null;
+    baseDate=trainee.doj;
+  } else {
+    // Next grade 15 days after last grading date
+    baseDate=recs[recs.length-1].date;
+  }
+  const d=new Date(baseDate+'T00:00:00');
+  d.setDate(d.getDate()+15);
+  return d.toISOString().slice(0,10);
+}
+
+// Check if grading window is open for a trainee today
+function isGradingWindowOpen(trainee){
+  const nextDate=getNextGradingDate(trainee);
+  if(!nextDate) return false;
+  return today()>=nextDate;
+}
+
+// Average discipline from all grades
 function calcAvgDisc(tid){
-  const grades=[];
-  Object.values(DISCIPLINE).forEach(week=>{if(week[tid]&&week[tid].grade)grades.push(week[tid].grade);});
-  if(!grades.length)return '—';
+  const recs=getDiscRecords(tid);
+  if(!recs.length) return '—';
   const map={'A':4,'B':3,'C':2,'D':1};
-  const avg=grades.reduce((s,g)=>s+(map[g]||0),0)/grades.length;
+  const avg=recs.reduce((s,r)=>s+(map[r.grade]||0),0)/recs.length;
   if(avg>=3.5)return 'A';if(avg>=2.5)return 'B';if(avg>=1.5)return 'C';return 'D';
 }
+
 function initDisc(){
   refreshTMDropdowns();
-  if(!document.getElementById('disc-week').value)document.getElementById('disc-week').value=today();
   renderDisc();
 }
+
 function renderDisc(){
-  const week=document.getElementById('disc-week').value;
   const tmF=document.getElementById('disc-tm-filter').value;
   const gradeF=(document.getElementById('disc-grade-filter')||{}).value||'';
-  if(!DISCIPLINE[week])DISCIPLINE[week]={};
   let list=TRAINEES;
   if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
   if(tmF)list=list.filter(t=>t.masterId===tmF);
-  if(gradeF)list=list.filter(t=>(weekData[t.id]||{}).grade===gradeF);
+
+  // Grade filter — by latest grade
+  if(gradeF==='PENDING'){
+    list=list.filter(t=>!getLatestDisc(t.id));
+  } else if(gradeF){
+    list=list.filter(t=>{
+      const l=getLatestDisc(t.id);
+      return l&&l.grade===gradeF;
+    });
+  }
+
   const tbody=document.getElementById('disc-tbody');
   tbody.innerHTML=list.map((t,i)=>{
     const tm=MASTERS.find(m=>m.id===t.masterId);
-    const cur=DISCIPLINE[week][t.id]||{};
-    const canEdit=(currentUser.role==='admin'||currentUser.tmId===t.masterId) && currentUser.role!=='to';
-    const gradesBtns=['A','B','C','D'].map(g=>`<button class="dg-btn ${g} ${cur.grade===g?'active':''}" ${canEdit?`onclick="setDisc('${t.id}','${week}','${g}',this)"`:''} ${canEdit?'':'disabled'}>${g}</button>`).join('');
-    return `<tr>
-      <td>${i+1}</td><td><strong>${t.name}</strong></td><td>${t.roll}</td>
-      <td>${tm?tm.name:'—'}</td>
-      <td><div class="disc-grade">${gradesBtns}</div></td>
-      <td>${canEdit?`<input style="border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:12px;width:140px;" placeholder="Remarks..." id="disc-rem-${t.id}" value="${cur.remark||''}">`:cur.remark||'—'}</td>
-      <td>${canEdit?`<button class="btn btn-success btn-sm" onclick="saveDisc('${t.id}','${week}')">💾</button>`:''}</td>
+    const latest=getLatestDisc(t.id);
+    const nextDate=getNextGradingDate(t);
+    const windowOpen=isGradingWindowOpen(t);
+    const isAdmin=currentUser.role==='admin';
+    const canGrade=(isAdmin||(currentUser.tmId===t.masterId&&currentUser.role==='tm'))&&windowOpen;
+    const canAdminRevoke=isAdmin&&latest;
+    const canAdminChange=isAdmin&&latest;
+
+    // Status label
+    let statusLabel='';
+    if(!t.doj){
+      statusLabel='<span style="color:var(--gm);font-size:11px;">No DOJ set</span>';
+    } else if(!nextDate){
+      statusLabel='<span style="color:var(--gm);font-size:11px;">—</span>';
+    } else if(windowOpen){
+      statusLabel='<span style="color:var(--green);font-size:11px;font-weight:700;">Open Now</span>';
+    } else {
+      statusLabel='<span style="color:var(--gm);font-size:11px;">From '+fmt(nextDate)+'</span>';
+    }
+
+    // Grade buttons — shown only when window open OR admin
+    const gradesBtns=['A','B','C','D'].map(g=>`<button class="dg-btn ${g} ${latest&&latest.grade===g?'active':''}"
+      ${canGrade||canAdminChange?`onclick="setDiscNew('${t.id}','${g}',this)"`:''} ${canGrade||canAdminChange?'':'disabled'}>${g}</button>`).join('');
+
+    return `<tr style="${windowOpen?'background:#f0fdf4;':''}">
+      <td>${i+1}</td>
+      <td><strong>${t.name}</strong><br><span style="font-size:10px;color:var(--gm);">${t.roll}</span></td>
+      <td>${t.roll}</td>
+      <td style="font-size:12px;">${tm?tm.name:'—'}</td>
+      <td style="font-size:12px;">${fmt(t.doj)||'—'}</td>
+      <td style="font-size:12px;">${statusLabel}</td>
+      <td>
+        ${latest?`<span class="badge badge-${latest.grade==='A'?'green':latest.grade==='B'?'blue':latest.grade==='C'?'orange':'red'}">${latest.grade}</span>`:'<span style="color:var(--gm);font-size:12px;">Not graded</span>'}
+        ${canGrade||canAdminChange?`<div class="disc-grade" style="margin-top:4px;">${gradesBtns}</div>`:''}
+      </td>
+      <td style="font-size:11px;">${latest?fmt(latest.date):'—'}<br><span style="color:var(--gm);font-size:10px;">${latest?latest.gradedBy||'':''}</span></td>
+      <td>${canGrade||canAdminChange?`<input style="border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:12px;width:130px;" placeholder="Remarks..." id="disc-rem-${t.id}" value="${latest?latest.remark||'':''}">`:(latest?latest.remark||'—':'—')}</td>
+      <td style="white-space:nowrap;">
+        ${canGrade||canAdminChange?`<button class="btn btn-success btn-sm" onclick="saveDiscNew('${t.id}')">💾 Save</button>`:''}
+        ${canAdminRevoke?`<button class="btn btn-danger btn-sm" onclick="revokeDisc('${t.id}')" style="margin-top:4px;" title="Revoke latest grade">🗑️ Revoke</button>`:''}
+      </td>
     </tr>`;
   }).join('');
 }
-function setDisc(tid,week,grade,btn){
-  if(!DISCIPLINE[week])DISCIPLINE[week]={};
-  if(!DISCIPLINE[week][tid])DISCIPLINE[week][tid]={};
-  DISCIPLINE[week][tid].grade=grade;
+
+function setDiscNew(tid,grade,btn){
   const row=btn.closest('.disc-grade');
-  row.querySelectorAll('.dg-btn').forEach(b=>{b.classList.remove('active');});
+  row.querySelectorAll('.dg-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  // Store pending grade in element data
+  row.dataset.pendingGrade=grade;
 }
-function saveDisc(tid,week){
-  if(!DISCIPLINE[week])DISCIPLINE[week]={};
-  if(!DISCIPLINE[week][tid])DISCIPLINE[week][tid]={};
-  const rem=document.getElementById('disc-rem-'+tid);
-  if(rem)DISCIPLINE[week][tid].remark=rem.value;
+
+function saveDiscNew(tid){
+  const t=TRAINEES.find(x=>x.id===tid);
+  if(!t) return;
+  const isAdmin=currentUser.role==='admin';
+  const latest=getLatestDisc(tid);
+
+  // Find selected grade
+  const gradeRow=document.querySelector('.disc-grade [data-pending-grade], .disc-grade .active');
+  // Find active button in this trainee's row
+  const activeBtn=document.querySelector(`#disc-rem-${tid}`)?.closest('tr')?.querySelector('.dg-btn.active');
+  if(!activeBtn){alert('Please select a grade first.');return;}
+  const grade=activeBtn.textContent.trim();
+
+  const remark=(document.getElementById('disc-rem-'+tid)||{}).value||'';
+
+  if(!isAdmin&&!isGradingWindowOpen(t)){
+    alert('Grading window is not open yet for '+t.name+'. Next grading from: '+fmt(getNextGradingDate(t)));
+    return;
+  }
+
+  if(!DISCIPLINE[tid]) DISCIPLINE[tid]=[];
+
+  if(isAdmin&&latest){
+    // Admin changing existing grade — update in place, keep date
+    const recs=DISCIPLINE[tid];
+    recs[recs.length-1].grade=grade;
+    recs[recs.length-1].remark=remark;
+    recs[recs.length-1].gradedBy=currentUser.name;
+  } else {
+    // New grade entry
+    DISCIPLINE[tid].push({
+      grade, date:today(), remark,
+      gradedBy:currentUser.name, gradedRole:currentUser.role
+    });
+  }
+
   saveDiscipline();
-  const btn=event.currentTarget;btn.textContent='✅';setTimeout(()=>btn.textContent='💾',1000);
+  renderDisc();
+  showSync('saved','Grade saved for '+t.name);
 }
+
+function revokeDisc(tid){
+  if(currentUser.role!=='admin'){alert('Only Admin can revoke grades.');return;}
+  const t=TRAINEES.find(x=>x.id===tid);
+  if(!t)return;
+  const recs=DISCIPLINE[tid]||[];
+  if(!recs.length){alert('No grade to revoke.');return;}
+  const latest=recs[recs.length-1];
+  if(!confirm('Revoke grade '+latest.grade+' for '+t.name+' (dated '+fmt(latest.date)+')?
+
+Next grading window will be based on previous grade date.'))return;
+  DISCIPLINE[tid].pop();
+  saveDiscipline();
+  renderDisc();
+  logActivity('DISCIPLINE_REVOKE','Grade revoked for '+t.name+' ('+t.roll+') — was: '+latest.grade);
+}
+
 function exportDisc(){
-  const weeks=Object.keys(DISCIPLINE).sort();
-  const rows=[['Roll No.','Name','Training Master',...weeks.map(w=>'Week '+fmtXL(w)+' Grade'),...weeks.map(w=>'Week '+fmtXL(w)+' Remark')]];
+  const rows=[['Roll No.','Name','Training Master','Grade No.','Date Graded','Grade','Remarks','Graded By']];
   TRAINEES.forEach(t=>{
     const tm=MASTERS.find(m=>m.id===t.masterId);
-    rows.push([t.roll,t.name,tm?tm.name:'',...weeks.map(w=>((DISCIPLINE[w]||{})[t.id]||{}).grade||''),...weeks.map(w=>((DISCIPLINE[w]||{})[t.id]||{}).remark||'')]);
+    const recs=getDiscRecords(t.id);
+    if(!recs.length){
+      rows.push([t.roll,t.name,tm?tm.name:'','','','','','']);
+    } else {
+      recs.forEach((r,i)=>{
+        rows.push([t.roll,t.name,tm?tm.name:'',i+1,fmtXL(r.date),r.grade,r.remark||'',r.gradedBy||'']);
+      });
+    }
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:12},{wch:22},{wch:20},{wch:10},{wch:14},{wch:8},{wch:25},{wch:20}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Discipline');
   XLSX.writeFile(wb,'SMPL_Discipline.xlsx');
   logActivity('EXPORT','Discipline ratings exported to Excel');
