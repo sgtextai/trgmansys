@@ -1795,7 +1795,36 @@ function logActivity(action, details){
   LS.set('smpl_log', ACTIVITY_LOG);
   saveLog();
 }
-function saveAttendance(){gsSync('saveAttendance',ATTENDANCE,'smpl_att',      ATTENDANCE);}
+function saveAttendance(){
+  // Build payload — only send current TM's trainees for each date
+  // Include masterId so Apps Script knows whose data this is
+  // This prevents overwriting other TMs' attendance records
+  let myTraineeIds;
+  if(currentUser.role==='tm'){
+    myTraineeIds=new Set(TRAINEES.filter(t=>t.masterId===currentUser.tmId).map(t=>t.id));
+  } else {
+    // Admin/TO — send all trainees
+    myTraineeIds=new Set(TRAINEES.map(t=>t.id));
+  }
+
+  // Build filtered attendance — only this TM's trainees
+  const filteredAtt={};
+  Object.entries(ATTENDANCE).forEach(([date,dayData])=>{
+    filteredAtt[date]={};
+    Object.entries(dayData).forEach(([tid,status])=>{
+      if(myTraineeIds.has(tid)) filteredAtt[date][tid]=status||'CLEAR';
+    });
+  });
+
+  const payload={
+    attendance: filteredAtt,
+    masterId: currentUser.tmId||'',
+    role: currentUser.role,
+    traineeIds: [...myTraineeIds] // list of TM's trainees so GS knows scope
+  };
+
+  gsSync('saveAttendance', payload, 'smpl_att', ATTENDANCE);
+}
 function saveDiscipline(){gsSync('saveDiscipline',DISCIPLINE,'smpl_disc',     DISCIPLINE);}
 function saveQuestions(){ gsSync('saveQuestions',PAPERS,     'smpl_papers',   PAPERS);    }
 
