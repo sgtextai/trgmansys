@@ -3312,8 +3312,10 @@ function editTR(id){
   refreshTMDropdowns();
   document.getElementById('tr-f-tm').value=t.masterId||'';
   document.getElementById('tr-form-title').textContent='Edit Trainee';
-  document.getElementById('tr-form').classList.add('open');
-  document.getElementById('tr-form').scrollIntoView({behavior:'smooth'});
+  const trForm=document.getElementById('tr-form');
+  trForm.style.display=''; // clear inline style so CSS class takes effect
+  trForm.classList.add('open');
+  trForm.scrollIntoView({behavior:'smooth'});
 }
 function saveTR(){
   const name  = document.getElementById('tr-f-name').value.trim();
