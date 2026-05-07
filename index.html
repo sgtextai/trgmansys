@@ -804,8 +804,9 @@ tr:hover td{background:#f8fafc;}
     </div>
     <div class="card">
       <div class="card-body">
-        <div class="form-grid" style="grid-template-columns:auto auto;">
+        <div class="form-grid" style="grid-template-columns:auto auto auto;">
           <div class="form-field"><label>Training Master</label><select id="disc-tm-filter" onchange="renderDisc()"><option value="">All</option></select></div>
+          <div class="form-field"><label>Unit</label><select id="disc-unit-filter" onchange="discUnitChanged()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;min-width:150px;"><option value="">All Units</option></select></div>
           <div class="form-field"><label>Filter by Current Grade</label><select id="disc-grade-filter" onchange="renderDisc()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;"><option value="">All Grades</option><option value="A">A — Excellent</option><option value="B">B — Good</option><option value="C">C — Average</option><option value="D">D — Poor</option><option value="PENDING">Pending (not graded)</option></select></div>
         </div>
         <p style="font-size:12px;color:var(--gm);">Grade each trainee every 15 days from DOJ. First grade after 15 days from joining. A = Excellent | B = Good | C = Average | D = Poor</p>
@@ -3404,7 +3405,21 @@ function saveTR(){
 
   if(editingTR){
     const t=TRAINEES.find(x=>x.id===editingTR);
-    if(t){Object.assign(t,obj);}
+    if(t){
+      // Detect TM transfer — record transfer history
+      if(t.masterId && obj.masterId && t.masterId!==obj.masterId){
+        if(!t.transfers) t.transfers=[];
+        t.transfers.push({
+          date: today(),
+          fromMasterId: t.masterId,
+          toMasterId: obj.masterId
+        });
+        logActivity('TRANSFER','Trainee '+t.name+' ('+t.roll+') transferred from '+
+          (MASTERS.find(m=>m.id===t.masterId)||{name:'Unknown'}).name+' to '+
+          (MASTERS.find(m=>m.id===obj.masterId)||{name:'Unknown'}).name);
+      }
+      Object.assign(t,obj);
+    }
     editingTR=null;
   } else {
     TRAINEES.push({id:uid(),...obj,desig:'Tr',dop1:doj,dop2:'',woff:parseInt(woff)});
@@ -4123,13 +4138,17 @@ function renderMonthly(){
       const cells=workDays.map(date=>{
         const off=isOffDay(date,t.woff);
         const v=(ATTENDANCE[date]||{})[t.id]||'';
+        const transfer=(t.transfers||[]).find(tr=>tr.date===date);
         if(off) return `<td style="text-align:center;background:#e8e8e8;color:#aaa;font-size:11px;padding:5px 2px;" title="Weekly Off">OFF</td>`;
         if(v==='P') present++;
         else if(v==='A') absent++;
         else notMarked++;
-        const bg=v==='P'?'#e8f8ee':v==='A'?'#fde8e6':'#f5f5f5';
+        const bg=transfer?'#dbeafe':v==='P'?'#e8f8ee':v==='A'?'#fde8e6':'#f5f5f5';
         const col=v==='P'?'var(--green)':v==='A'?'var(--red)':'#bbb';
-        return `<td style="text-align:center;background:${bg};color:${col};font-weight:700;font-size:12px;padding:5px 2px;">${v||'—'}</td>`;
+        const fromTM=transfer?(MASTERS.find(m=>m.id===transfer.fromMasterId)||{name:'Previous TM'}).name:'';
+        const toTM=transfer?(MASTERS.find(m=>m.id===transfer.toMasterId)||{name:'Current TM'}).name:'';
+        const tip=transfer?`title="Transferred: ${fromTM} → ${toTM}"`:'';
+        return `<td style="text-align:center;background:${bg};color:${col};font-weight:700;font-size:12px;padding:5px 2px;" ${tip}>${v||'—'}${transfer?'<br><span style="font-size:8px;color:#2563eb;">⇔</span>':''}</td>`;
       }).join('');
       const pct=(present+absent)>0?Math.round((present/(present+absent))*100):0;
       const pctCol=pct>=80?'var(--green)':pct>=60?'var(--orange)':'var(--red)';
@@ -4529,16 +4548,37 @@ function calcAvgDisc(tid){
 }
 
 function initDisc(){
-  refreshTMDropdowns();
+  // Populate TM dropdown manually — refreshTMDropdowns resets it
+  const tmSel=document.getElementById('disc-tm-filter');
+  if(tmSel){
+    tmSel.innerHTML='<option value="">All</option>';
+    MASTERS.forEach(m=>tmSel.innerHTML+=`<option value="${m.id}">${m.name}</option>`);
+  }
+  // Populate Unit dropdown
+  const unitSel=document.getElementById('disc-unit-filter');
+  if(unitSel){
+    unitSel.innerHTML='<option value="">All Units</option>';
+    [...new Set(TRAINEES.map(t=>t.unit).filter(u=>u))].sort()
+      .forEach(u=>unitSel.innerHTML+=`<option value="${u}">${u}</option>`);
+  }
+  renderDisc();
+}
+
+function discUnitChanged(){
+  // When unit selected — reset TM to All
+  const tmSel=document.getElementById('disc-tm-filter');
+  if(tmSel) tmSel.value='';
   renderDisc();
 }
 
 function renderDisc(){
   const tmF=document.getElementById('disc-tm-filter').value;
   const gradeF=(document.getElementById('disc-grade-filter')||{}).value||'';
+  const unitF=(document.getElementById('disc-unit-filter')||{}).value||'';
   let list=TRAINEES;
-  if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
-  if(tmF)list=list.filter(t=>t.masterId===tmF);
+  if(currentUser.role==='tm') list=list.filter(t=>t.masterId===currentUser.tmId);
+  else if(tmF) list=list.filter(t=>t.masterId===tmF);
+  if(unitF) list=list.filter(t=>(t.unit||'')===unitF);
 
   // Grade filter — by latest grade
   if(gradeF==='PENDING'){
