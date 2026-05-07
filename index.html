@@ -3419,13 +3419,14 @@ function deleteTR(id){
   TRAINEES=TRAINEES.filter(t=>t.id!==id);saveTrainees();renderTR();
 }
 function renderDesig(){
-  const tmF=(document.getElementById('tr-filter-tm')||{}).value||'';
+  // Designation card removed from Trainees page — now in Promotion tab
+  // This function is kept for compatibility but exits safely if card not found
   const card=document.getElementById('desig-card');
+  if(!card) return; // card removed — nothing to render
+  const tmF=(document.getElementById('tr-filter-tm')||{}).value||'';
   const label=document.getElementById('desig-tm-label');
-  // Show for all if admin, show for own trainees if TM
   let list=TRAINEES;
   if(currentUser.role==='tm') list=list.filter(t=>t.masterId===currentUser.tmId);
-  // TO sees all trainees in discipline view
   else if(tmF) list=list.filter(t=>t.masterId===tmF);
   if(!list.length){card.style.display='none';return;}
   card.style.display='';
