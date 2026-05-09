@@ -1132,6 +1132,23 @@ tr:hover td{background:#f8fafc;}
     </div>
 
     <!-- Password -->
+        <div class="card admin-only">
+      <div class="card-hd"><h3>🏢 Company Details</h3></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--gm);margin-bottom:12px;">These details appear on the app header, login screen, MCQ result cards and reports.</p>
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+          <div class="form-field">
+            <label>Company Name</label>
+            <input type="text" id="set-company-name" placeholder="e.g. Sagar Manufacturers Pvt. Ltd." style="padding:10px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
+          </div>
+          <div class="form-field">
+            <label>Company Tagline</label>
+            <input type="text" id="set-company-tagline" placeholder="e.g. Sagar Yarn | Bhopal, Madhya Pradesh" style="padding:10px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveCompanyDetails()" style="margin-top:8px;">Save Company Details</button>
+      </div>
+    </div>
     <div class="card">
       <div class="card-hd"><h3>🔑 Password Management</h3></div>
       <div class="card-body">
@@ -2412,8 +2429,8 @@ function updateCompanyName(){
 function initApp(){
   migrateDates(); // fix any stored serial numbers — safe here, all vars loaded
   renderDashboard();
-  document.getElementById('att-date').value=today();
-  document.getElementById('disc-week').value=today();
+  const attDate=document.getElementById('att-date');
+  if(attDate) attDate.value=today();
   updateArchivedCount();
 }
 
@@ -6102,24 +6119,4 @@ function changePwd(type){if(!adminOnly())return;
 populateTMSelect();
 </script>
 </body>
-</html>    <div class="card admin-only">
-      <div class="card-hd"><h3>🏢 Company Details</h3></div>
-      <div class="card-body">
-        <p style="font-size:12px;color:var(--gm);margin-bottom:12px;">These details appear on the app header, login screen, MCQ result cards and reports.</p>
-        <div class="form-grid" style="grid-template-columns:1fr 1fr;">
-          <div class="form-field">
-            <label>Company Name</label>
-            <input type="text" id="set-company-name" placeholder="e.g. Sagar Manufacturers Pvt. Ltd."
-              style="padding:10px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
-          </div>
-          <div class="form-field">
-            <label>Company Tagline</label>
-            <input type="text" id="set-company-tagline" placeholder="e.g. Sagar Yarn | Bhopal, Madhya Pradesh"
-              style="padding:10px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
-          </div>
-        </div>
-        <button class="btn btn-primary" onclick="saveCompanyDetails()" style="margin-top:8px;">Save Company Details</button>
-      </div>
-    </div>
-
-    
+</html>
