@@ -4623,20 +4623,34 @@ function renderDisc(){
   const tmF=document.getElementById('disc-tm-filter').value;
   const gradeF=(document.getElementById('disc-grade-filter')||{}).value||'';
   const unitF=(document.getElementById('disc-unit-filter')||{}).value||'';
-  let list=TRAINEES;
-  if(currentUser.role==='tm') list=list.filter(t=>t.masterId===currentUser.tmId);
-  else if(tmF) list=list.filter(t=>t.masterId===tmF);
-  if(unitF) list=list.filter(t=>(t.unit||'')===unitF);
+  // Always start fresh from full TRAINEES list
+  let list=[...TRAINEES];
+
+  // Role filter — TM sees own trainees only
+  if(currentUser.role==='tm'){
+    list=list.filter(t=>t.masterId===currentUser.tmId);
+  } else if(tmF && tmF!==''){
+    // Admin/TO with specific TM selected
+    list=list.filter(t=>t.masterId===tmF);
+  }
+  // else tmF==='' means All — no filter applied
+
+  // Unit filter
+  if(unitF && unitF!==''){
+    list=list.filter(t=>(t.unit||'')===unitF);
+  }
+  // else unitF==='' means All Units — no filter applied
 
   // Grade filter — by latest grade
   if(gradeF==='PENDING'){
     list=list.filter(t=>!getLatestDisc(t.id));
-  } else if(gradeF){
+  } else if(gradeF && gradeF!==''){
     list=list.filter(t=>{
       const l=getLatestDisc(t.id);
       return l&&l.grade===gradeF;
     });
   }
+  // else gradeF==='' means All Grades — no filter applied
 
   const tbody=document.getElementById('disc-tbody');
   tbody.innerHTML=list.map((t,i)=>{
