@@ -228,7 +228,7 @@ tr:hover td{background:#f8fafc;}
 <div class="login-wrap">
 <div class="login-card">
   <div class="login-hd">
-    <h1>Sagar Manufacturers Pvt. Ltd.</h1>
+    <h1 id="login-company-name">Sagar Manufacturers Pvt. Ltd.</h1>
     <p>Training Management System | Sagar Yarn | Bhopal</p>
   </div>
   <div class="login-body">
@@ -274,7 +274,7 @@ tr:hover td{background:#f8fafc;}
       <div style="font-size:24px;font-weight:900;color:var(--navy);letter-spacing:3px;" id="blocked-device-code">—</div>
       <div style="font-size:11px;color:var(--gm);margin-top:6px;">Share this code with Admin to get access.</div>
     </div>
-    <div style="font-size:12px;color:var(--navy);font-weight:600;">Sagar Manufacturers Pvt. Ltd.</div>
+    <div style="font-size:12px;color:var(--navy);font-weight:600;" id="device-company-name">Sagar Manufacturers Pvt. Ltd.</div>
     <div style="font-size:11px;color:var(--gm);">SMPL Training Management System</div>
   </div>
 </div>
@@ -284,7 +284,7 @@ tr:hover td{background:#f8fafc;}
 <!-- ══════════ MAIN APP ══════════ -->
 <div id="app" style="display:none;" class="app-shell">
   <div class="top-bar">
-    <div class="logo">Sagar Manufacturers Pvt. Ltd. — Training Management System<span>Sagar Yarn | Bhopal, Madhya Pradesh</span></div>
+    <div class="logo"><span id="app-company-name">Sagar Manufacturers Pvt. Ltd.</span> — Training Management System<span id="app-company-tagline">Sagar Yarn | Bhopal, Madhya Pradesh</span></div>
     <div class="user-badge" id="user-badge">Admin</div>
     <button id="conn-status" class="conn-status loading" onclick="retryConnection()" title="Click to retry connection">⏳ Connecting...</button>
     <button class="logout-btn" onclick="doLogout()">Logout</button>
@@ -879,6 +879,7 @@ tr:hover td{background:#f8fafc;}
         <table>
           <thead><tr>
             <th>#</th><th>Name</th><th>Roll No.</th>
+            <th>Department</th>
             <th>Training Master</th>
             <th>Designation</th>
             <th>1st DOP<br><small style="font-weight:400;font-size:10px;">Tr→Sr.Tr.</small></th>
@@ -1495,6 +1496,10 @@ const DEFAULT_PAPERS=[
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzz2TJfUXN6EPI4cAhfK0FFCzbfEWoUDLR1OYuH9-hgVdTD8HsqYOB7OLsAC_Nh4wsb/exec';
 const SMPL_KEY = 'SMPL-fDWHUdTd7qTavPyEl2PEbJPHN3Z9PFeD'; // Secret key — must match Apps Script
 
+// ── Company Details — configurable from Settings tab ──
+let COMPANY_NAME    = LS.get('smpl_company_name',    'Sagar Manufacturers Pvt. Ltd.');
+let COMPANY_TAGLINE = LS.get('smpl_company_tagline', 'Sagar Yarn | Bhopal, Madhya Pradesh');
+
 // ── LOCAL STORAGE (fallback + cache) ──
 const LS={
   get:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},
@@ -1984,6 +1989,14 @@ async function loadFromGoogleSheets(){
       if(data.ctSettings && data.ctSettings.topics)    CT_TOPICS   = data.ctSettings.topics;
       if(data.ctSettings && data.ctSettings.trainers)  CT_TRAINERS = data.ctSettings.trainers;
       if(data.settings   && data.settings.adminPwd)    ADMIN_PWD        = data.settings.adminPwd;
+      if(data.settings   && data.settings.companyName){
+        COMPANY_NAME    = data.settings.companyName;
+        LS.set('smpl_company_name', COMPANY_NAME);
+      }
+      if(data.settings   && data.settings.companyTagline){
+        COMPANY_TAGLINE = data.settings.companyTagline;
+        LS.set('smpl_company_tagline', COMPANY_TAGLINE);
+      }
       if(data.settings   && data.settings.tmPwd)       TM_DEFAULT_PWD   = data.settings.tmPwd;
       if(data.settings   && data.settings.toPwd)       TO_DEFAULT_PWD   = data.settings.toPwd;
       if(data.settings   && data.settings.deviceCheck!==undefined)
@@ -2015,6 +2028,7 @@ async function loadFromGoogleSheets(){
 
       lastLoaded=new Date();
       gsDataLoaded=true;
+      updateCompanyName(); // refresh company name from loaded settings
       setConnStatus('connected','');
       showSync('saved','✅ Data loaded — '+
         (TRAINEES.length)+' trainees, '+(MASTERS.length)+' Training Masters');
@@ -2274,7 +2288,7 @@ function showPostLoginLoader(){
     <div style="width:52px;height:52px;border:5px solid rgba(255,255,255,0.2);border-top-color:#c8a84b;border-radius:50%;animation:spin .8s linear infinite;"></div>
     <div style="color:#fff;font-size:16px;font-weight:700;">Loading latest data...</div>
     <div style="color:#c8a84b;font-size:13px;">Please wait — syncing from Google Sheets</div>
-    <div style="color:rgba(255,255,255,0.6);font-size:12px;">Sagar Manufacturers Pvt. Ltd.</div>`;
+    <div style="color:rgba(255,255,255,0.6);font-size:12px;">${COMPANY_NAME}</div>`;
   document.body.appendChild(loader);
 }
 
@@ -2377,6 +2391,22 @@ function migrateDates(){
     saveArchived();
     console.log('Date migration: serial numbers converted');
   }
+}
+
+function updateCompanyName(){
+  // Update all company name elements from COMPANY_NAME and COMPANY_TAGLINE variables
+  const nameEls=['login-company-name','app-company-name','device-company-name'];
+  nameEls.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=COMPANY_NAME;
+  });
+  const tagEls=['app-company-tagline'];
+  tagEls.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=COMPANY_TAGLINE;
+  });
+  // Update document title
+  document.title=COMPANY_NAME+' — Training Management System';
 }
 
 function initApp(){
@@ -4255,7 +4285,7 @@ function printMonthlyAtt(){
         <div style="border-top:1px solid #333;padding-top:4px;min-width:100px;text-align:center;">DGM Technical</div>
       </div>
       <div style="text-align:center;font-size:9px;color:#888;border-top:1px solid #ddd;margin-top:12px;padding-top:6px;">
-        Sagar Manufacturers Pvt. Ltd. | Confidential — Internal Use | Generated: ${today()}
+        ${COMPANY_NAME} | Confidential — Internal Use | Generated: ${today()}
       </div>`;
   });
 
@@ -4914,7 +4944,7 @@ function downloadResultPDF(){
     qRows+=`<div style="padding:6px 10px;margin-bottom:4px;border-left:4px solid ${ua===-1?'#aaa':ok?'#1e8449':'#c0392b'};border-radius:4px;background:${ua===-1?'#f5f5f5':ok?'#f0faf4':'#fef0ee'};font-size:11px;line-height:1.5"><b>${i+1}.</b> ${q.q}<br>${ansText}</div>`;
   });
   document.getElementById('print-area').innerHTML=`
-    <div class="pr-hdr"><div class="pr-co">Sagar Manufacturers Pvt. Ltd. (Sagar Yarn)</div><div class="pr-sub">Bhopal, Madhya Pradesh | Cotton Combed Yarn Spinning Mill | Trainee Assessment Result</div></div>
+    <div class="pr-hdr"><div class="pr-co">${COMPANY_NAME}</div><div class="pr-sub">${COMPANY_TAGLINE} | Trainee Assessment Result</div></div>
     <div class="pr-meta">
       <div class="pr-mc"><strong>Trainee Name:</strong> ${r.traineeName}</div><div class="pr-mc"><strong>Roll No.:</strong> ${r.roll}</div>
       <div class="pr-mc"><strong>Department:</strong> ${r.dept}</div><div class="pr-mc"><strong>Paper:</strong> ${r.paper}</div>
@@ -4933,7 +4963,7 @@ function downloadResultPDF(){
     </div>
     <div class="pr-section">Question-wise Detail</div>${qRows}
     <div class="pr-signs"><div class="pr-sign">Trainee Signature</div><div class="pr-sign">Supervisor Signature</div><div class="pr-sign">DGM Technical</div></div>
-    <div class="pr-foot">Sagar Manufacturers Pvt. Ltd. | Confidential — Internal Use Only | ${r.date}</div>`;
+    <div class="pr-foot">${COMPANY_NAME} | Confidential — Internal Use Only | ${r.date}</div>`;
   document.querySelectorAll('#app>*').forEach(el=>el.style.display='none');
   document.getElementById('print-area').style.display='block';
   setTimeout(()=>{window.print();setTimeout(()=>{document.getElementById('print-area').style.display='none';document.querySelectorAll('#app>*').forEach(el=>el.style.display='');},500);},300);
@@ -5051,7 +5081,7 @@ function printReport(){
     return `<tr><td>${i+1}</td><td>${t.name}<br><small>${t.roll}</small></td><td>${tm?tm.name:'—'}</td><td>${t.dept||'—'}</td><td>${attPct}%</td><td>${avgDisc}</td><td style="text-align:center">${allTests.length}</td><td style="font-size:10px;">${l3txt}</td></tr>`;
   }).join('');
   document.getElementById('print-area').innerHTML=`
-    <div class="pr-hdr"><div class="pr-co">Sagar Manufacturers Pvt. Ltd. (Sagar Yarn)</div><div class="pr-sub">Trainee Performance Report | Generated: ${today()}</div></div>
+    <div class="pr-hdr"><div class="pr-co">${COMPANY_NAME}</div><div class="pr-sub">${COMPANY_TAGLINE} | Trainee Performance Report | Generated: ${today()}</div></div>
     <table class="pr-tbl"><thead><tr><th>#</th><th>Name/Roll</th><th>Training Master</th><th>Dept</th><th>Att%</th><th>Discipline</th><th>Tests</th><th>Last 3 MCQ Scores (Date: Score Grade% Time)</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="pr-foot">Sagar Manufacturers Pvt. Ltd. | Confidential | ${today()}</div>`;
   document.querySelectorAll('#app>*').forEach(el=>el.style.display='none');
@@ -5291,6 +5321,23 @@ function exportQ(){if(!adminOnly())return;
 }
 
 // ══════════════════════════════════════════════════════
+function saveCompanyDetails(){
+  const name=(document.getElementById('set-company-name').value||'').trim();
+  const tagline=(document.getElementById('set-company-tagline').value||'').trim();
+  if(!name){alert('Company name cannot be empty.');return;}
+  COMPANY_NAME=name;
+  COMPANY_TAGLINE=tagline;
+  LS.set('smpl_company_name', COMPANY_NAME);
+  LS.set('smpl_company_tagline', COMPANY_TAGLINE);
+  gsSync('saveSettings',{
+    adminPwd:ADMIN_PWD, tmPwd:TM_DEFAULT_PWD, toPwd:TO_DEFAULT_PWD,
+    deviceCheck:DEVICE_CHECK_ENABLED,
+    companyName:COMPANY_NAME, companyTagline:COMPANY_TAGLINE
+  },'smpl_settings',{});
+  updateCompanyName();
+  showSync('saved','Company details saved — '+COMPANY_NAME);
+}
+
 // SETTINGS — PASSWORD
 // ══════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════
@@ -5393,6 +5440,11 @@ function confirmApproveThis(){
   document.getElementById('approve-this-modal').remove();
   showDeviceMsg('✅ This device approved successfully.','ok');
   initDevices();
+  // Populate company details fields
+  const cnEl=document.getElementById('set-company-name');
+  const ctEl=document.getElementById('set-company-tagline');
+  if(cnEl) cnEl.value=COMPANY_NAME;
+  if(ctEl) ctEl.value=COMPANY_TAGLINE;
 }
 
 function addApprovedDevice(){
@@ -5594,8 +5646,9 @@ function renderPromotion(){
       ${canEdit?`onclick="setDesig('${t.id}','${v}',this)"`:' disabled'}>${v}</button>`).join('');
     return `<tr>
       <td>${i+1}</td>
-      <td><strong>${t.name}</strong><br><span style="font-size:10px;color:var(--gm);">${t.dept||'-'} | ${t.unit||'-'}</span></td>
+      <td><strong>${t.name}</strong><br><span style="font-size:10px;color:var(--gm);">${t.unit||'-'}</span></td>
       <td>${t.roll}</td>
+      <td style="font-size:12px;">${t.dept||'—'}</td>
       <td style="font-size:12px;">${tm?tm.name:'-'}</td>
       <td style="white-space:nowrap;">${btns}</td>
       <td>${canEdit?`<input type="date" id="pdop1-${t.id}" value="${t.dop1||''}"
@@ -6049,4 +6102,24 @@ function changePwd(type){if(!adminOnly())return;
 populateTMSelect();
 </script>
 </body>
-</html>
+</html>    <div class="card admin-only">
+      <div class="card-hd"><h3>🏢 Company Details</h3></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--gm);margin-bottom:12px;">These details appear on the app header, login screen, MCQ result cards and reports.</p>
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+          <div class="form-field">
+            <label>Company Name</label>
+            <input type="text" id="set-company-name" placeholder="e.g. Sagar Manufacturers Pvt. Ltd."
+              style="padding:10px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
+          </div>
+          <div class="form-field">
+            <label>Company Tagline</label>
+            <input type="text" id="set-company-tagline" placeholder="e.g. Sagar Yarn | Bhopal, Madhya Pradesh"
+              style="padding:10px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveCompanyDetails()" style="margin-top:8px;">Save Company Details</button>
+      </div>
+    </div>
+
+    
