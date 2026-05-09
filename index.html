@@ -814,7 +814,7 @@ tr:hover td{background:#f8fafc;}
     </div>
     <div class="card">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>#</th><th>Trainee Name</th><th>Roll No.</th><th>Training Master</th><th>DOJ</th><th>Next Grading From</th><th>Current Grade</th><th>Last Graded</th><th>Remarks</th><th>Action</th></tr></thead>
+        <thead><tr><th>#</th><th>Trainee Name</th><th>Roll No.</th><th>Department</th><th>Training Master</th><th>DOJ</th><th>Next Grading From</th><th>Current Grade</th><th>Last Graded</th><th>Remarks</th><th>Action</th></tr></thead>
         <tbody id="disc-tbody"></tbody>
       </table></div>
     </div>
@@ -4669,6 +4669,7 @@ function renderDisc(){
       <td>${i+1}</td>
       <td><strong>${t.name}</strong><br><span style="font-size:10px;color:var(--gm);">${t.roll}</span></td>
       <td>${t.roll}</td>
+      <td style="font-size:12px;">${t.dept||'—'}</td>
       <td style="font-size:12px;">${tm?tm.name:'—'}</td>
       <td style="font-size:12px;">${fmt(t.doj)||'—'}</td>
       <td style="font-size:12px;">${statusLabel}</td>
