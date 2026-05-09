@@ -1513,15 +1513,16 @@ const DEFAULT_PAPERS=[
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzz2TJfUXN6EPI4cAhfK0FFCzbfEWoUDLR1OYuH9-hgVdTD8HsqYOB7OLsAC_Nh4wsb/exec';
 const SMPL_KEY = 'SMPL-fDWHUdTd7qTavPyEl2PEbJPHN3Z9PFeD'; // Secret key — must match Apps Script
 
-// ── Company Details — configurable from Settings tab ──
-let COMPANY_NAME    = LS.get('smpl_company_name',    'Sagar Manufacturers Pvt. Ltd.');
-let COMPANY_TAGLINE = LS.get('smpl_company_tagline', 'Sagar Yarn | Bhopal, Madhya Pradesh');
 
 // ── LOCAL STORAGE (fallback + cache) ──
 const LS={
   get:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},
   set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
 };
+
+// ── Company Details — configurable from Settings tab ──
+let COMPANY_NAME    = LS.get('smpl_company_name',    'Sagar Manufacturers Pvt. Ltd.');
+let COMPANY_TAGLINE = LS.get('smpl_company_tagline', 'Sagar Yarn | Bhopal, Madhya Pradesh');
 
 // ── OFFLINE QUEUE ── saves that failed due to no internet
 let offlineQueue=LS.get('smpl_offline_queue',[]);
