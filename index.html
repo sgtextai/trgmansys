@@ -665,6 +665,16 @@ tr:hover td{background:#f8fafc;}
       <input id="tr-search" placeholder="🔍 Search by name, roll no..." oninput="renderTR()">
       <select id="tr-filter-tm" onchange="renderTR();renderDesig()"><option value="">All Training Masters</option></select>
       <select id="tr-filter-unit" onchange="renderTR()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;min-width:140px;"><option value="">All Units</option></select>
+      <select id="tr-filter-period" onchange="renderTR()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;min-width:160px;">
+        <option value="">All Periods</option>
+        <option value="0-30">0 - 30 days</option>
+        <option value="31-60">31 - 60 days</option>
+        <option value="61-90">61 - 90 days</option>
+        <option value="91-180">91 - 180 days</option>
+        <option value="181-270">181 - 270 days</option>
+        <option value="271-360">271 - 360 days</option>
+        <option value="360+">360+ days</option>
+      </select>
     </div>
     <div class="card">
       <div class="tbl-wrap"><table>
@@ -3331,6 +3341,23 @@ function renderTR(){
   if(q)list=list.filter(t=>t.name.toLowerCase().includes(q.toLowerCase())||t.roll.toLowerCase().includes(q.toLowerCase()));
   if(tmF)list=list.filter(t=>t.masterId===tmF);
   if(activeUnitF)list=list.filter(t=>(t.unit||'').toLowerCase()===activeUnitF.toLowerCase());
+  const periodF=(document.getElementById('tr-filter-period')||{}).value||'';
+  if(periodF){
+    const todayMs=new Date(today()+'T00:00:00').getTime();
+    list=list.filter(t=>{
+      if(!t.doj) return false;
+      const dojMs=new Date(t.doj+'T00:00:00').getTime();
+      const days=Math.floor((todayMs-dojMs)/(1000*60*60*24));
+      if(periodF==='0-30')    return days>=0   && days<=30;
+      if(periodF==='31-60')   return days>=31  && days<=60;
+      if(periodF==='61-90')   return days>=61  && days<=90;
+      if(periodF==='91-180')  return days>=91  && days<=180;
+      if(periodF==='181-270') return days>=181 && days<=270;
+      if(periodF==='271-360') return days>=271 && days<=360;
+      if(periodF==='360+')    return days>360;
+      return true;
+    });
+  }
 
   const tbody=document.getElementById('tr-tbody');
   tbody.innerHTML=list.map((t,i)=>{
