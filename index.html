@@ -807,7 +807,7 @@ tr:hover td{background:#f8fafc;}
         <div class="form-grid" style="grid-template-columns:auto auto auto;">
           <div class="form-field"><label>Training Master</label><select id="disc-tm-filter" onchange="renderDisc()"><option value="">All</option></select></div>
           <div class="form-field"><label>Unit</label><select id="disc-unit-filter" onchange="discUnitChanged()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;min-width:150px;"><option value="">All Units</option></select></div>
-          <div class="form-field"><label>Filter by Current Grade</label><select id="disc-grade-filter" onchange="renderDisc()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;"><option value="">All Grades</option><option value="A">A — Excellent</option><option value="B">B — Good</option><option value="C">C — Average</option><option value="D">D — Poor</option><option value="PENDING">Pending (not graded)</option></select></div>
+          <div class="form-field"><label>Filter by Current Grade</label><select id="disc-grade-filter" onchange="renderDisc()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;"><option value="">All Grades</option><option value="A">A — Excellent</option><option value="B">B — Good</option><option value="C">C — Average</option><option value="D">D — Poor</option><option value="PENDING">Pending (window open, not graded)</option><option value="INELIGIBLE">Not Yet Eligible (window not open)</option></select></div>
         </div>
         <p style="font-size:12px;color:var(--gm);">Grade each trainee every 15 days from DOJ. First grade after 15 days from joining. A = Excellent | B = Good | C = Average | D = Poor</p>
       </div>
@@ -4633,24 +4633,48 @@ function renderDisc(){
     // Admin/TO with specific TM selected
     list=list.filter(t=>t.masterId===tmF);
   }
-  // else tmF==='' means All — no filter applied
+  // else tmF==='' — Admin/TO sees all, but filter to 15+ days from DOJ
+  if(!tmF || tmF===''){
+    if(currentUser.role!=='tm'){
+      // Show only trainees where grading window has opened at least once
+      // i.e. 15+ days from DOJ
+      list=list.filter(t=>{
+        if(!t.doj) return false;
+        const doj=new Date(t.doj+'T00:00:00');
+        const now=new Date(today()+'T00:00:00');
+        const diffDays=Math.floor((now-doj)/(1000*60*60*24));
+        return diffDays>=15;
+      });
+    }
+  }
 
   // Unit filter
   if(unitF && unitF!==''){
     list=list.filter(t=>(t.unit||'')===unitF);
   }
-  // else unitF==='' means All Units — no filter applied
 
-  // Grade filter — by latest grade
+  // Grade filter
   if(gradeF==='PENDING'){
-    list=list.filter(t=>!getLatestDisc(t.id));
+    // Window open + not yet graded OR window open + due for next grade
+    list=list.filter(t=>isGradingWindowOpen(t));
+    list=list.filter(t=>{
+      const recs=getDiscRecords(t.id);
+      if(!recs.length) return true; // never graded — window open = pending
+      // Has grades — check if window is open for next grade
+      return isGradingWindowOpen(t);
+    });
+  } else if(gradeF==='INELIGIBLE'){
+    // Once graded AND window not yet open for next grade
+    list=list.filter(t=>{
+      const recs=getDiscRecords(t.id);
+      return recs.length>0 && !isGradingWindowOpen(t);
+    });
   } else if(gradeF && gradeF!==''){
     list=list.filter(t=>{
       const l=getLatestDisc(t.id);
       return l&&l.grade===gradeF;
     });
   }
-  // else gradeF==='' means All Grades — no filter applied
 
   const tbody=document.getElementById('disc-tbody');
   tbody.innerHTML=list.map((t,i)=>{
