@@ -838,7 +838,12 @@ tr:hover td{background:#f8fafc;}
         <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr auto auto;">
           <div class="form-field"><label>Filter by Training Master</label><select id="rpt-tm"><option value="">All</option></select></div>
           <div class="form-field"><label>Filter by Trainee</label><select id="rpt-tr"><option value="">All Trainees</option></select></div>
-          <div class="form-field"><label>Search by Name / Roll No.</label><input type="text" id="rpt-search" placeholder="🔍 Name or roll no..." oninput="renderReport()" style="padding:9px 14px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;"></div>
+          <div class="form-field"><label>Search by Name / Roll No.</label>
+            <div style="display:flex;gap:6px;">
+              <input type="text" id="rpt-search" placeholder="🔍 Name or roll no..." style="padding:9px 14px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;flex:1;" onkeydown="if(event.key==='Enter')renderReport()">
+              <button class="btn btn-light" onclick="resetRptFilters()" style="white-space:nowrap;padding:9px 14px;">↺ Reset</button>
+            </div>
+          </div>
           <div class="form-field" style="display:flex;align-items:flex-end;"><button class="btn btn-primary" onclick="renderReport()">🔍 Generate</button></div>
           <div class="form-field" style="display:flex;align-items:flex-end;gap:8px;">
             <button class="btn btn-warning" onclick="printReport()">🖨️ Print</button>
@@ -5057,6 +5062,16 @@ function downloadResultPDF(){
 // ══════════════════════════════════════════════════════
 // REPORTS
 // ══════════════════════════════════════════════════════
+function resetRptFilters(){
+  const tmSel=document.getElementById('rpt-tm');
+  const trSel=document.getElementById('rpt-tr');
+  const search=document.getElementById('rpt-search');
+  if(tmSel) tmSel.value='';
+  if(trSel) trSel.innerHTML='<option value="">All Trainees</option>';
+  if(search) search.value='';
+  renderReport();
+}
+
 function initReport(){refreshTMDropdowns();renderReport();}
 function getTestsForTrainee(tid){
   // Match by traineeId (new) OR by name+roll fallback (for tests taken before dropdown was added)
