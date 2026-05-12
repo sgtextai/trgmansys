@@ -2373,25 +2373,34 @@ function getSkillsForDept(dept){
 }
 
 function initSkillSettings(){
-  // First days
+  // Ensure SKILL_SETTINGS has all required fields
+  if(!SKILL_SETTINGS.thresholds) SKILL_SETTINGS.thresholds=[{pct:70,label:'May be Sr. Trainee'},{pct:100,label:'May be Jr. Operator/FTW'}];
+  if(!SKILL_SETTINGS.units) SKILL_SETTINGS.units=['NUMBERS','MINUTES','%','KG','SECONDS','',''];
+  if(!SKILL_SETTINGS.deptSkills) SKILL_SETTINGS.deptSkills={};
+  if(!SKILL_SETTINGS.firstDays) SKILL_SETTINGS.firstDays=20;
+  if(!SKILL_SETTINGS.nextDays) SKILL_SETTINGS.nextDays=10;
+
+  // Assessment windows
   const fd=document.getElementById('st-first-days');
   const nd=document.getElementById('st-next-days');
-  if(fd) fd.value=SKILL_SETTINGS.firstDays||20;
-  if(nd) nd.value=SKILL_SETTINGS.nextDays||10;
+  if(fd) fd.value=SKILL_SETTINGS.firstDays;
+  if(nd) nd.value=SKILL_SETTINGS.nextDays;
 
-  // Units
+  // Units — filter empty for display
   const ul=document.getElementById('st-units-list');
-  if(ul) ul.value=(SKILL_SETTINGS.units||[]).join(',');
+  if(ul) ul.value=(SKILL_SETTINGS.units||[]).filter(u=>u&&u.trim()).join(',');
 
   // Thresholds
   renderSkillThresholds();
 
-  // Dept dropdown
+  // Dept dropdown — use same DEPT_UNITS as Trainees tab (no conflict)
   const deptSel=document.getElementById('st-config-dept');
   if(deptSel){
     deptSel.innerHTML='<option value="">-- Select Department --</option>';
     const allDepts=new Set();
-    DEPT_UNITS.forEach(du=>(du.depts||[]).forEach(d=>allDepts.add(d)));
+    (DEPT_UNITS||[]).forEach(du=>{
+      (du.depts||[]).forEach(d=>{ if(d&&d.trim()) allDepts.add(d.trim()); });
+    });
     [...allDepts].sort().forEach(d=>deptSel.innerHTML+=`<option value="${d}">${d}</option>`);
   }
 }
@@ -2495,7 +2504,7 @@ function saveSkillSettings(){
   // Read all settings fields
   const fd=parseInt(document.getElementById('st-first-days').value)||20;
   const nd=parseInt(document.getElementById('st-next-days').value)||10;
-  const ul=(document.getElementById('st-units-list').value||'').split(',').map(u=>u.trim());
+  const ulRaw=(document.getElementById('st-units-list').value||'').split(',').map(u=>u.trim()); const ul=[...ulRaw,...['','']].slice(0,Math.max(ulRaw.length+2,7));
   // Read thresholds
   const thresholds=[];
   (SKILL_SETTINGS.thresholds||[]).forEach((t,i)=>{
@@ -2519,9 +2528,13 @@ function initSkillTracker(){
   const sel=document.getElementById('st-trainee-sel');
   if(!sel) return;
   sel.innerHTML='<option value="">-- Select Trainee --</option>';
-  let list=TRAINEES;
+  let list=[...TRAINEES];
   if(currentUser.role==='tm') list=list.filter(t=>t.masterId===currentUser.tmId);
-  list.forEach(t=>sel.innerHTML+=`<option value="${t.id}">${t.name} (${t.roll}) — ${t.dept||'?'}</option>`);
+  if(!list.length){
+    sel.innerHTML='<option value="">No trainees found — data may still be loading</option>';
+  } else {
+    list.forEach(t=>sel.innerHTML+=`<option value="${t.id}">${t.name} (${t.roll}) — ${t.dept||'?'}</option>`);
+  }
   document.getElementById('st-trainee-info').style.display='none';
   document.getElementById('st-grid-card').style.display='none';
   document.getElementById('st-history-card').style.display='none';
