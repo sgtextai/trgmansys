@@ -28,7 +28,7 @@ button,input,select,textarea{font-family:inherit;}
 
 .main-nav{background:var(--navy-dark);display:flex;overflow-x:auto;border-bottom:2px solid var(--gold);scrollbar-width:none;}
 .main-nav::-webkit-scrollbar{display:none;}
-.nav-tab{flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--gm);cursor:pointer;border:none;background:transparent;border-bottom:3px solid transparent;white-space:nowrap;transition:.2s;}
+.nav-tab{flex-shrink:0;padding:6px 9px;font-size:12px;font-weight:600;color:var(--gm);cursor:pointer;border:none;background:transparent;border-bottom:3px solid transparent;white-space:nowrap;transition:.2s;}
 .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
 .nav-tab:hover{color:#fff;}
 
@@ -291,16 +291,17 @@ tr:hover td{background:#f8fafc;}
   </div>
   <div class="main-nav" id="main-nav">
     <button class="nav-tab active" onclick="showPage('dashboard')">📊 Dashboard</button>
-    <button class="nav-tab" onclick="showPage('classTraining')">📚 Class Training</button>
+    <button class="nav-tab" onclick="showPage('classTraining')">📚 CT</button>
     <button class="nav-tab" onclick="showPage('test')">📝 MCQ Test</button>
-    <button class="nav-tab" onclick="showPage('masters')">👨‍🏫 Training Masters</button>
+    <button class="nav-tab" onclick="showPage('masters')">👨‍🏫 TMs</button>
     <button class="nav-tab" onclick="showPage('trainees')" id="nav-trainees">👷 Trainees <span id="pending-archive-badge" style="display:none;background:#e67e22;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:2px;">0</span></button>
-    <button class="nav-tab" onclick="showPage('attendance')">📅 Attendance</button>
+    <button class="nav-tab" onclick="showPage('attendance')">📅 Attend.</button>
     <button class="nav-tab" onclick="showPage('discipline')">⭐ Discipline</button>
     <button class="nav-tab" onclick="showPage('reports')">📈 Reports</button>
     <button class="nav-tab" onclick="showPage('promotion')" id="nav-promotion">🏅 Promotion</button>
-    <button class="nav-tab admin-only" onclick="showPage('mcqresults')">🎯 MCQ Results</button>
-    <button class="nav-tab admin-only" onclick="showPage('activitylog')">📋 Activity Log</button>
+    <button class="nav-tab admin-only" onclick="showPage('mcqresults')">🎯 MCQ Res.</button>
+    <button class="nav-tab admin-only" onclick="showPage('activitylog')">📋 Activity</button>
+    <button class="nav-tab" onclick="showPage('skilltracker')">🎯 Skills</button>
     <button class="nav-tab admin-only" onclick="showPage('settings')">⚙️ Settings</button>
   </div>
 
@@ -908,6 +909,94 @@ tr:hover td{background:#f8fafc;}
     </div>
   </div>
 
+  <!-- SKILL TRACKER PAGE -->
+  <div class="page" id="page-skilltracker">
+    <div class="section-hd">
+      <h2>🎯 Skill Tracker</h2>
+    </div>
+
+    <!-- Trainee Selection -->
+    <div class="card">
+      <div class="card-body">
+        <div class="form-grid" style="grid-template-columns:1fr 1fr auto;">
+          <div class="form-field">
+            <label>Select Trainee</label>
+            <select id="st-trainee-sel" onchange="loadSkillTrainee()" style="padding:9px 14px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
+              <option value="">-- Select Trainee --</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Assessment Date</label>
+            <input type="date" id="st-date" style="padding:9px 14px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;" readonly>
+          </div>
+          <div class="form-field" style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" onclick="saveSkillAssessment()" id="st-save-btn" style="display:none;">💾 Save Assessment</button>
+          </div>
+        </div>
+        <!-- Trainee Info -->
+        <div id="st-trainee-info" style="display:none;background:#f0f4f8;border-radius:10px;padding:12px 16px;margin-top:10px;">
+          <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:13px;">
+            <span><strong>Name:</strong> <span id="st-name"></span></span>
+            <span><strong>Roll:</strong> <span id="st-roll"></span></span>
+            <span><strong>Dept:</strong> <span id="st-dept"></span></span>
+            <span><strong>Unit:</strong> <span id="st-unit"></span></span>
+            <span><strong>TM:</strong> <span id="st-tm"></span></span>
+          </div>
+        </div>
+        <!-- Window status -->
+        <div id="st-window-msg" style="display:none;margin-top:10px;padding:10px 14px;border-radius:9px;font-size:13px;font-weight:600;"></div>
+      </div>
+    </div>
+
+    <!-- Skill Grid -->
+    <div class="card" id="st-grid-card" style="display:none;">
+      <div class="card-hd">
+        <h3>📊 Skill Assessment Grid</h3>
+        <span id="st-dept-label" style="font-size:13px;color:var(--gm);"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table id="st-grid-table">
+          <thead>
+            <tr>
+              <th style="min-width:140px;">Skill Set</th>
+              <th style="min-width:100px;">Unit</th>
+              <th style="min-width:80px;">Norm</th>
+              <th style="min-width:100px;">Actual Value</th>
+              <th style="min-width:60px;">Impact</th>
+              <th style="min-width:90px;">Capability</th>
+              <th style="min-width:90px;">Weightage</th>
+              <th style="min-width:80px;">Value</th>
+            </tr>
+          </thead>
+          <tbody id="st-grid-tbody"></tbody>
+          <tfoot>
+            <tr style="background:#f0f4f8;font-weight:700;">
+              <td colspan="6" style="text-align:right;padding:10px 12px;">Total Weightage:</td>
+              <td id="st-total-weightage" style="text-align:center;padding:10px 12px;"></td>
+              <td id="st-total-value" style="text-align:center;padding:10px 12px;font-size:16px;color:var(--navy);"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <!-- Result -->
+      <div id="st-result" style="display:none;padding:16px 20px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:var(--navy);" id="st-result-pct"></div>
+        <div style="font-size:16px;margin-top:6px;font-weight:700;" id="st-result-rec"></div>
+      </div>
+    </div>
+
+    <!-- Previous Assessments -->
+    <div class="card" id="st-history-card" style="display:none;">
+      <div class="card-hd"><h3>📋 Previous Assessments</h3></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Date</th><th>Total %</th><th>Recommendation</th><th>Details</th></tr></thead>
+          <tbody id="st-history-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- MCQ RESULTS PAGE -->
   <div class="page" id="page-mcqresults">
     <div class="section-hd">
@@ -1163,6 +1252,52 @@ tr:hover td{background:#f8fafc;}
           </div>
         </div>
         <button class="btn btn-primary" onclick="saveCompanyDetails()" style="margin-top:8px;">Save Company Details</button>
+      </div>
+    </div>
+        <div class="card admin-only">
+      <div class="card-hd"><h3>🎯 Skill Tracker Settings</h3></div>
+      <div class="card-body">
+        <div style="margin-bottom:16px;">
+          <h4 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">Assessment Windows</h4>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+            <div class="form-field">
+              <label>First Assessment (days from DOJ)</label>
+              <input type="number" id="st-first-days" min="1" max="90" value="20" style="padding:9px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
+            </div>
+            <div class="form-field">
+              <label>Subsequent Assessment (days from last)</label>
+              <input type="number" id="st-next-days" min="1" max="90" value="10" style="padding:9px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
+            </div>
+          </div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <h4 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;">Measurement Units</h4>
+          <p style="font-size:11px;color:var(--gm);margin-bottom:8px;">Comma-separated list of units available in dropdown</p>
+          <input type="text" id="st-units-list" value="NUMBERS,MINUTES,%,KG,SECONDS,," style="padding:9px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
+        </div>
+        <div style="margin-bottom:16px;">
+          <h4 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">Recommendation Thresholds</h4>
+          <div id="st-thresholds-list"></div>
+          <button class="btn btn-light btn-sm" onclick="addSkillThreshold()" style="margin-top:8px;">+ Add Threshold</button>
+        </div>
+        <div style="margin-bottom:16px;">
+          <h4 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">Department Skill Sets</h4>
+          <div class="form-field" style="margin-bottom:10px;">
+            <label>Select Department to Configure</label>
+            <select id="st-config-dept" onchange="loadSkillConfig()" style="padding:9px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;min-width:200px;"><option value="">-- Select Department --</option></select>
+          </div>
+          <div id="st-config-grid" style="display:none;">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>#</th><th>Skill Name</th><th>Unit</th><th>Norm</th><th>Impact</th><th>Weightage (%)</th><th>Active</th></tr></thead>
+                <tbody id="st-config-tbody"></tbody>
+              </table>
+            </div>
+            <div id="st-weightage-warning" style="display:none;color:var(--red);font-size:12px;font-weight:700;margin-top:8px;"></div>
+            <button class="btn btn-success" onclick="saveSkillConfig()" style="margin-top:10px;">Save Dept Skill Config</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSkillSettings()">Save All Skill Settings</button>
       </div>
     </div>
     <div class="card">
@@ -1683,7 +1818,16 @@ let PAPERS=loadPapers();
 let MASTERS=LS.get('smpl_masters',[]);      // [{id,name,empId,dept,doj,exp,pwd}]
 let TRAINEES=LS.get('smpl_trainees',[]);    // [{id,name,roll,dept,doj,masterId,phone}]
 let ARCHIVED=LS.get('smpl_archived',[]);
-let PENDING_ARCHIVE=LS.get('smpl_pending_archive',[]); // TM archive requests awaiting TO/Admin approval
+let PENDING_ARCHIVE=LS.get('smpl_pending_archive',[]);
+let SKILL_SETTINGS=LS.get('smpl_skill_settings',{
+  firstDays:20, nextDays:10,
+  units:['NUMBERS','MINUTES','%','KG','SECONDS','',''],
+  thresholds:[{pct:70,label:'May be Sr. Trainee'},{pct:100,label:'May be Jr. Operator/FTW'}],
+  deptSkills:{} // {dept: [{name,unit,norm,impact,weightage,active}x10]}
+});
+let SKILL_ASSESSMENTS=LS.get('smpl_skill_assessments',[]);
+function saveSkillSettings(){ gsSync('saveSkillSettings',SKILL_SETTINGS,'smpl_skill_settings',SKILL_SETTINGS); }
+function saveSkillAssessmentsData(){ gsSync('saveSkillAssessments',SKILL_ASSESSMENTS,'smpl_skill_assessments',SKILL_ASSESSMENTS); } // TM archive requests awaiting TO/Admin approval
 function savePendingArchive(){ gsSync('savePendingArchive',PENDING_ARCHIVE,'smpl_pending_archive',PENDING_ARCHIVE); }
 
 // Department-Unit master data
@@ -2011,6 +2155,10 @@ async function loadFromGoogleSheets(){
       ACTIVITY_LOG = data.log          || [];
       // Fix CLASS_TRAINING — ensure dates are strings and roll numbers clean
       if(data.pendingArchive) { PENDING_ARCHIVE=data.pendingArchive; LS.set('smpl_pending_archive',PENDING_ARCHIVE); }
+      if(data.skillSettings && Object.keys(data.skillSettings).length>0){
+        SKILL_SETTINGS=data.skillSettings; LS.set('smpl_skill_settings',SKILL_SETTINGS);
+      }
+      if(data.skillAssessments){ SKILL_ASSESSMENTS=data.skillAssessments; LS.set('smpl_skill_assessments',SKILL_ASSESSMENTS); }
       CLASS_TRAINING = (data.classTraining || []).map(r=>({
         ...r,
         date: r.date ? String(r.date).split('T')[0] : '',
@@ -2205,6 +2353,449 @@ function setRole(r,btn){
 })();
 
 // Show login screen immediately — load data in background
+// ══════════════════════════════════════════════════════
+// SKILL TRACKER
+// ══════════════════════════════════════════════════════
+
+function getDefaultSkills(){
+  return Array.from({length:10},(_,i)=>({
+    name:'Skill '+(i+1), unit:'NUMBERS', norm:0,
+    impact:'P', weightage:0, active:false
+  }));
+}
+
+function getSkillsForDept(dept){
+  if(!SKILL_SETTINGS.deptSkills) SKILL_SETTINGS.deptSkills={};
+  if(!SKILL_SETTINGS.deptSkills[dept]){
+    SKILL_SETTINGS.deptSkills[dept]=getDefaultSkills();
+  }
+  return SKILL_SETTINGS.deptSkills[dept];
+}
+
+function initSkillSettings(){
+  // First days
+  const fd=document.getElementById('st-first-days');
+  const nd=document.getElementById('st-next-days');
+  if(fd) fd.value=SKILL_SETTINGS.firstDays||20;
+  if(nd) nd.value=SKILL_SETTINGS.nextDays||10;
+
+  // Units
+  const ul=document.getElementById('st-units-list');
+  if(ul) ul.value=(SKILL_SETTINGS.units||[]).join(',');
+
+  // Thresholds
+  renderSkillThresholds();
+
+  // Dept dropdown
+  const deptSel=document.getElementById('st-config-dept');
+  if(deptSel){
+    deptSel.innerHTML='<option value="">-- Select Department --</option>';
+    const allDepts=new Set();
+    DEPT_UNITS.forEach(du=>(du.depts||[]).forEach(d=>allDepts.add(d)));
+    [...allDepts].sort().forEach(d=>deptSel.innerHTML+=`<option value="${d}">${d}</option>`);
+  }
+}
+
+function renderSkillThresholds(){
+  const container=document.getElementById('st-thresholds-list');
+  if(!container) return;
+  const thresholds=SKILL_SETTINGS.thresholds||[];
+  container.innerHTML=thresholds.map((t,i)=>`
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+      <input type="number" value="${t.pct}" min="0" max="200" id="st-thr-pct-${i}"
+        style="width:80px;padding:7px 10px;border:1.5px solid #d0d8e4;border-radius:8px;font-size:13px;" placeholder="%">
+      <span style="font-size:13px;color:var(--gm);">%  →</span>
+      <input type="text" value="${t.label}" id="st-thr-label-${i}"
+        style="flex:1;padding:7px 10px;border:1.5px solid #d0d8e4;border-radius:8px;font-size:13px;" placeholder="Recommendation label">
+      <button onclick="removeSkillThreshold(${i})" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;">✕</button>
+    </div>`).join('');
+}
+
+function addSkillThreshold(){
+  if(!SKILL_SETTINGS.thresholds) SKILL_SETTINGS.thresholds=[];
+  SKILL_SETTINGS.thresholds.push({pct:80,label:'New Recommendation'});
+  renderSkillThresholds();
+}
+
+function removeSkillThreshold(i){
+  SKILL_SETTINGS.thresholds.splice(i,1);
+  renderSkillThresholds();
+}
+
+function loadSkillConfig(){
+  const dept=document.getElementById('st-config-dept').value;
+  const grid=document.getElementById('st-config-grid');
+  if(!dept){grid.style.display='none';return;}
+  grid.style.display='';
+  const skills=getSkillsForDept(dept);
+  const units=(SKILL_SETTINGS.units||['NUMBERS','MINUTES','%','KG','SECONDS']).filter(u=>u);
+  const unitOpts=units.map(u=>`<option value="${u}">${u}</option>`).join('');
+  const tbody=document.getElementById('st-config-tbody');
+  tbody.innerHTML=skills.map((s,i)=>`<tr>
+    <td style="text-align:center;">${i+1}</td>
+    <td><input type="text" id="sk-name-${i}" value="${s.name||''}" style="width:130px;padding:5px 8px;border:1px solid #d0d8e4;border-radius:6px;font-size:12px;"></td>
+    <td><select id="sk-unit-${i}" style="padding:5px 8px;border:1px solid #d0d8e4;border-radius:6px;font-size:12px;">
+      ${units.map(u=>`<option value="${u}" ${s.unit===u?'selected':''}>${u}</option>`).join('')}
+    </select></td>
+    <td><input type="number" id="sk-norm-${i}" value="${s.norm||0}" step="any" style="width:80px;padding:5px 8px;border:1px solid #d0d8e4;border-radius:6px;font-size:12px;"></td>
+    <td><select id="sk-impact-${i}" style="padding:5px 8px;border:1px solid #d0d8e4;border-radius:6px;font-size:12px;">
+      <option value="P" ${s.impact==='P'?'selected':''}>P (Higher=Better)</option>
+      <option value="N" ${s.impact==='N'?'selected':''}>N (Lower=Better)</option>
+    </select></td>
+    <td><input type="number" id="sk-wt-${i}" value="${Math.round((s.weightage||0)*100)}" min="0" max="100" style="width:70px;padding:5px 8px;border:1px solid #d0d8e4;border-radius:6px;font-size:12px;" onchange="checkSkillWeightage()"> %</td>
+    <td style="text-align:center;"><input type="checkbox" id="sk-active-${i}" ${s.active?'checked':''} onchange="checkSkillWeightage()"></td>
+  </tr>`).join('');
+  checkSkillWeightage();
+}
+
+function checkSkillWeightage(){
+  let total=0;
+  for(let i=0;i<10;i++){
+    const wt=document.getElementById('sk-wt-'+i);
+    const active=document.getElementById('sk-active-'+i);
+    if(wt && active && active.checked) total+=parseFloat(wt.value||0);
+  }
+  const warn=document.getElementById('st-weightage-warning');
+  if(warn){
+    if(Math.round(total)!==100){
+      warn.style.display='';
+      warn.textContent='⚠️ Total weightage = '+total+'%. Must be exactly 100% for active skills.';
+    } else {
+      warn.style.display='none';
+    }
+  }
+  return Math.round(total)===100;
+}
+
+function saveSkillConfig(){
+  const dept=document.getElementById('st-config-dept').value;
+  if(!dept){alert('Please select a department.');return;}
+  if(!checkSkillWeightage()){
+    alert('Total weightage of active skills must be exactly 100%. Please adjust before saving.');
+    return;
+  }
+  const skills=[];
+  for(let i=0;i<10;i++){
+    skills.push({
+      name:document.getElementById('sk-name-'+i).value||('Skill '+(i+1)),
+      unit:document.getElementById('sk-unit-'+i).value||'NUMBERS',
+      norm:parseFloat(document.getElementById('sk-norm-'+i).value)||0,
+      impact:document.getElementById('sk-impact-'+i).value||'P',
+      weightage:parseFloat(document.getElementById('sk-wt-'+i).value||0)/100,
+      active:document.getElementById('sk-active-'+i).checked
+    });
+  }
+  if(!SKILL_SETTINGS.deptSkills) SKILL_SETTINGS.deptSkills={};
+  SKILL_SETTINGS.deptSkills[dept]=skills;
+  saveSkillSettings();
+  showSync('saved','Skill config saved for '+dept);
+}
+
+function saveSkillSettings(){
+  // Read all settings fields
+  const fd=parseInt(document.getElementById('st-first-days').value)||20;
+  const nd=parseInt(document.getElementById('st-next-days').value)||10;
+  const ul=(document.getElementById('st-units-list').value||'').split(',').map(u=>u.trim());
+  // Read thresholds
+  const thresholds=[];
+  (SKILL_SETTINGS.thresholds||[]).forEach((t,i)=>{
+    const pct=parseFloat((document.getElementById('st-thr-pct-'+i)||{}).value||t.pct);
+    const label=((document.getElementById('st-thr-label-'+i)||{}).value||t.label||'').trim();
+    if(label) thresholds.push({pct,label});
+  });
+  thresholds.sort((a,b)=>a.pct-b.pct);
+  SKILL_SETTINGS.firstDays=fd;
+  SKILL_SETTINGS.nextDays=nd;
+  SKILL_SETTINGS.units=ul;
+  SKILL_SETTINGS.thresholds=thresholds;
+  LS.set('smpl_skill_settings',SKILL_SETTINGS);
+  gsSync('saveSkillSettings',SKILL_SETTINGS,'smpl_skill_settings',SKILL_SETTINGS);
+  showSync('saved','Skill Tracker settings saved');
+}
+
+// ── SKILL TRACKER TAB ──
+
+function initSkillTracker(){
+  const sel=document.getElementById('st-trainee-sel');
+  if(!sel) return;
+  sel.innerHTML='<option value="">-- Select Trainee --</option>';
+  let list=TRAINEES;
+  if(currentUser.role==='tm') list=list.filter(t=>t.masterId===currentUser.tmId);
+  list.forEach(t=>sel.innerHTML+=`<option value="${t.id}">${t.name} (${t.roll}) — ${t.dept||'?'}</option>`);
+  document.getElementById('st-trainee-info').style.display='none';
+  document.getElementById('st-grid-card').style.display='none';
+  document.getElementById('st-history-card').style.display='none';
+  document.getElementById('st-window-msg').style.display='none';
+  const saveBtn=document.getElementById('st-save-btn');
+  if(saveBtn) saveBtn.style.display='none';
+}
+
+function loadSkillTrainee(){
+  const tid=document.getElementById('st-trainee-sel').value;
+  const infoDiv=document.getElementById('st-trainee-info');
+  const gridCard=document.getElementById('st-grid-card');
+  const histCard=document.getElementById('st-history-card');
+  const winMsg=document.getElementById('st-window-msg');
+  const saveBtn=document.getElementById('st-save-btn');
+
+  if(!tid){
+    infoDiv.style.display='none';
+    gridCard.style.display='none';
+    histCard.style.display='none';
+    winMsg.style.display='none';
+    if(saveBtn) saveBtn.style.display='none';
+    return;
+  }
+
+  const t=TRAINEES.find(x=>x.id===tid);
+  if(!t) return;
+  const tm=MASTERS.find(m=>m.id===t.masterId);
+
+  // Populate trainee info
+  document.getElementById('st-name').textContent=t.name;
+  document.getElementById('st-roll').textContent=t.roll;
+  document.getElementById('st-dept').textContent=t.dept||'—';
+  document.getElementById('st-unit').textContent=t.unit||'—';
+  document.getElementById('st-tm').textContent=tm?tm.name:'—';
+  infoDiv.style.display='';
+
+  // Check assessment window
+  const firstDays=SKILL_SETTINGS.firstDays||20;
+  const nextDays=SKILL_SETTINGS.nextDays||10;
+  const todayStr=today();
+  const todayMs=new Date(todayStr+'T00:00:00').getTime();
+
+  // Get previous assessments for this trainee
+  const prevAssessments=(SKILL_ASSESSMENTS||[])
+    .filter(a=>a.traineeId===tid)
+    .sort((a,b)=>b.date.localeCompare(a.date));
+
+  let windowOpen=false;
+  let windowMsg='';
+
+  if(!t.doj){
+    windowMsg='No Date of Joining recorded for this trainee.';
+    windowOpen=false;
+  } else {
+    const dojMs=new Date(t.doj+'T00:00:00').getTime();
+    const daysSinceDOJ=Math.floor((todayMs-dojMs)/(1000*60*60*24));
+
+    if(prevAssessments.length===0){
+      // First assessment
+      if(daysSinceDOJ>=firstDays){
+        windowOpen=true;
+        windowMsg='First assessment window is OPEN ('+daysSinceDOJ+' days since joining).';
+      } else {
+        const daysLeft=firstDays-daysSinceDOJ;
+        windowMsg='First assessment available in '+daysLeft+' more days (after '+firstDays+' days from DOJ).';
+        windowOpen=false;
+      }
+    } else {
+      // Subsequent assessment
+      const lastDate=prevAssessments[0].date;
+      const lastMs=new Date(lastDate+'T00:00:00').getTime();
+      const daysSinceLast=Math.floor((todayMs-lastMs)/(1000*60*60*24));
+      if(daysSinceLast>=nextDays){
+        windowOpen=true;
+        windowMsg='Assessment window is OPEN (last assessed: '+fmt(lastDate)+').';
+      } else {
+        const daysLeft=nextDays-daysSinceLast;
+        windowMsg='Next assessment available in '+daysLeft+' more days (last: '+fmt(lastDate)+').';
+        windowOpen=false;
+      }
+    }
+  }
+
+  // Show window message
+  winMsg.style.display='';
+  winMsg.style.background=windowOpen?'#e8f8ee':'#fde8e6';
+  winMsg.style.color=windowOpen?'var(--green)':'var(--red)';
+  winMsg.textContent=(windowOpen?'✅ ':'❌ ')+windowMsg;
+
+  // Show/hide save button based on window and role
+  const canGrade=windowOpen&&(currentUser.role==='tm'||currentUser.role==='admin'||currentUser.role==='to');
+  if(saveBtn) saveBtn.style.display=canGrade?'':'none';
+
+  // Set assessment date to today
+  const dateEl=document.getElementById('st-date');
+  if(dateEl) dateEl.value=todayStr;
+
+  // Load skill grid for this dept
+  const dept=t.dept||'';
+  const skills=getSkillsForDept(dept);
+  gridCard.style.display='';
+  document.getElementById('st-dept-label').textContent=dept;
+  renderSkillGrid(skills, canGrade, prevAssessments[0]);
+
+  // Show history
+  if(prevAssessments.length>0){
+    histCard.style.display='';
+    const histTbody=document.getElementById('st-history-tbody');
+    histTbody.innerHTML=prevAssessments.map((a,i)=>`<tr>
+      <td>${i+1}</td>
+      <td>${fmt(a.date)}</td>
+      <td style="font-weight:700;color:var(--navy);">${Math.round((a.totalPct||0)*100)}%</td>
+      <td>${a.recommendation||'—'}</td>
+      <td><button class="btn btn-light btn-sm" onclick="showSkillDetail('${a.id}')">View</button></td>
+    </tr>`).join('');
+  } else {
+    histCard.style.display='none';
+  }
+}
+
+function renderSkillGrid(skills, canGrade, lastAssessment){
+  const tbody=document.getElementById('st-grid-tbody');
+  const lastSkills=(lastAssessment&&lastAssessment.skills)||[];
+  tbody.innerHTML=skills.map((s,i)=>{
+    const lastVal=(lastSkills[i]||{}).actual||'';
+    const isActive=s.active&&s.weightage>0;
+    const wtPct=Math.round((s.weightage||0)*100);
+    return `<tr id="st-row-${i}" style="${!isActive?'background:#f8f8f8;color:#bbb;':''}">
+      <td style="font-weight:600;">${s.name||('Skill '+(i+1))}</td>
+      <td>${s.unit||'—'}</td>
+      <td style="text-align:center;">${s.norm||0}</td>
+      <td style="text-align:center;">
+        ${isActive&&canGrade
+          ?`<input type="number" id="st-actual-${i}" value="" step="any"
+              style="width:90px;padding:5px 8px;border:1px solid #d0d8e4;border-radius:6px;font-size:12px;"
+              oninput="calcSkillRow(${i})" placeholder="Enter value">`
+          :`<span style="color:var(--gm);">${isActive?'—':'N/A'}</span>`}
+      </td>
+      <td style="text-align:center;font-weight:700;">${s.impact||'P'}</td>
+      <td style="text-align:center;" id="st-cap-${i}">—</td>
+      <td style="text-align:center;">${wtPct}%</td>
+      <td style="text-align:center;font-weight:700;" id="st-val-${i}">—</td>
+    </tr>`;
+  }).join('');
+  updateSkillTotals();
+}
+
+function calcSkillRow(i){
+  const skills=getSkillsForDept(
+    (TRAINEES.find(t=>t.id===document.getElementById('st-trainee-sel').value)||{}).dept||''
+  );
+  const s=skills[i];
+  if(!s||!s.active||!s.weightage) return;
+  const actualEl=document.getElementById('st-actual-'+i);
+  const capEl=document.getElementById('st-cap-'+i);
+  const valEl=document.getElementById('st-val-'+i);
+  if(!actualEl||!capEl||!valEl) return;
+  const actual=parseFloat(actualEl.value);
+  const norm=parseFloat(s.norm)||0;
+  if(isNaN(actual)||norm===0){ capEl.textContent='—'; valEl.textContent='—'; updateSkillTotals(); return; }
+  let cap=0;
+  if(s.impact==='P') cap=actual/norm;
+  else if(s.impact==='N') cap=norm/actual;
+  const val=cap*s.weightage;
+  capEl.textContent=(cap*100).toFixed(1)+'%';
+  valEl.textContent=(val*100).toFixed(2)+'%';
+  updateSkillTotals();
+}
+
+function updateSkillTotals(){
+  const tid=document.getElementById('st-trainee-sel').value;
+  const t=TRAINEES.find(x=>x.id===tid);
+  const dept=(t||{}).dept||'';
+  const skills=getSkillsForDept(dept);
+  let totalWt=0, totalVal=0, allFilled=true;
+  for(let i=0;i<10;i++){
+    const s=skills[i];
+    if(!s||!s.active||!s.weightage) continue;
+    totalWt+=s.weightage;
+    const valEl=document.getElementById('st-val-'+i);
+    if(valEl&&valEl.textContent&&valEl.textContent!=='—'){
+      totalVal+=parseFloat(valEl.textContent)||0;
+    } else { allFilled=false; }
+  }
+  const wtEl=document.getElementById('st-total-weightage');
+  const tvEl=document.getElementById('st-total-value');
+  const resDiv=document.getElementById('st-result');
+  if(wtEl) wtEl.textContent=Math.round(totalWt*100)+'%';
+  if(tvEl) tvEl.textContent=allFilled?(totalVal).toFixed(2)+'%':'—';
+
+  // Show recommendation
+  if(allFilled&&resDiv){
+    resDiv.style.display='';
+    const pctEl=document.getElementById('st-result-pct');
+    const recEl=document.getElementById('st-result-rec');
+    if(pctEl) pctEl.textContent=(totalVal).toFixed(1)+'%';
+    // Find recommendation
+    const thresholds=[...(SKILL_SETTINGS.thresholds||[])].sort((a,b)=>b.pct-a.pct);
+    let rec='Trainee';
+    for(const thr of thresholds){
+      if(totalVal*100>=thr.pct){ rec=thr.label; break; }
+    }
+    if(recEl){
+      recEl.textContent=rec;
+      recEl.style.color=totalVal>=1?'var(--green)':totalVal>=0.7?'var(--blue)':'var(--gm)';
+    }
+  } else if(resDiv){
+    resDiv.style.display='none';
+  }
+}
+
+function saveSkillAssessment(){
+  const tid=document.getElementById('st-trainee-sel').value;
+  if(!tid){alert('Please select a trainee.');return;}
+  const t=TRAINEES.find(x=>x.id===tid);
+  if(!t) return;
+  const dept=t.dept||'';
+  const skills=getSkillsForDept(dept);
+  const dateVal=document.getElementById('st-date').value||today();
+
+  // Collect skill values
+  let totalVal=0;
+  const skillData=skills.map((s,i)=>{
+    if(!s.active||!s.weightage) return {name:s.name,active:false,actual:'',capability:0,value:0};
+    const actualEl=document.getElementById('st-actual-'+i);
+    const actual=actualEl?parseFloat(actualEl.value)||0:0;
+    const norm=parseFloat(s.norm)||1;
+    let cap=0;
+    if(s.impact==='P') cap=actual/norm;
+    else if(s.impact==='N') cap=norm/(actual||0.001);
+    const val=cap*s.weightage;
+    totalVal+=val;
+    return {name:s.name,unit:s.unit,norm:s.norm,impact:s.impact,
+            weightage:s.weightage,active:true,actual,capability:cap,value:val};
+  });
+
+  // Get recommendation
+  const thresholds=[...(SKILL_SETTINGS.thresholds||[])].sort((a,b)=>b.pct-a.pct);
+  let rec='Trainee';
+  for(const thr of thresholds){
+    if(totalVal*100>=thr.pct){ rec=thr.label; break; }
+  }
+
+  const assessment={
+    id:uid(), traineeId:tid, traineeName:t.name, roll:t.roll,
+    dept, unit:t.unit||'', masterId:t.masterId,
+    date:dateVal, skills:skillData, totalPct:totalVal, recommendation:rec,
+    gradedBy:currentUser.name, gradedRole:currentUser.role
+  };
+
+  if(!SKILL_ASSESSMENTS) SKILL_ASSESSMENTS=[];
+  SKILL_ASSESSMENTS.push(assessment);
+  LS.set('smpl_skill_assessments',SKILL_ASSESSMENTS);
+  saveSkillAssessmentsData();
+  logActivity('SKILL_ASSESSMENT','Skill assessment saved for '+t.name+' ('+t.roll+') — '+Math.round(totalVal*100)+'% — '+rec);
+  showSync('saved','Assessment saved for '+t.name+' — '+Math.round(totalVal*100)+'%');
+  loadSkillTrainee(); // refresh
+}
+
+function showSkillDetail(assessId){
+  const a=(SKILL_ASSESSMENTS||[]).find(x=>x.id===assessId);
+  if(!a) return;
+  const details=a.skills.filter(s=>s.active).map(s=>
+    s.name+': Actual='+s.actual+', Cap='+Math.round(s.capability*100)+'%, Val='+Math.round(s.value*100)+'%'
+  ).join('
+');
+  alert('Assessment: '+fmt(a.date)+'
+Total: '+Math.round(a.totalPct*100)+'%
+Recommendation: '+a.recommendation+'
+
+'+details);
+}
+
 populateTMSelect();
 updateQueueBadge();
 
@@ -2390,6 +2981,7 @@ function showPage(id){
   if(id==='activitylog'){if(currentUser.role!=='admin'){alert('Access denied. Admin only.');return;}initActivityLog();}
   if(id==='mcqresults'){if(currentUser.role!=='admin'){alert('Access denied. Admin only.');return;}initMCQResults();}
   if(id==='promotion'){initPromotion();}
+  if(id==='skilltracker'){initSkillTracker();}
   if(id==='classTraining'){initClassTraining();}
   // TO blocked from Settings — already handled by admin-only class
   if(id==='test')initTestPage();
@@ -5140,6 +5732,7 @@ function renderReport(){
       <td style="min-width:220px;">${last3Html(t.id)}</td>
       ${(()=>{
         const ct=getCTSummary(t.id);
+        const sa=(SKILL_ASSESSMENTS||[]).filter(a=>a.traineeId===t.id).sort((a,b)=>b.date.localeCompare(a.date))[0];
         if(!ct) return '<td style="color:var(--gm);font-size:12px;text-align:center;">—</td>';
         const detailId='ct-detail-'+t.id;
         return `<td style="min-width:180px;font-size:12px;">
@@ -5164,6 +5757,12 @@ function renderReport(){
             </table>
           </div>
         </td>`;
+      })()}
+      ${(()=>{
+        if(!sa) return '<td style="color:var(--gm);text-align:center;font-size:12px;">—</td>';
+        const pct=Math.round((sa.totalPct||0)*100);
+        const col=pct>=100?'var(--green)':pct>=70?'var(--blue)':'var(--gm)';
+        return '<td style="text-align:center;font-size:12px;"><span style="font-weight:700;color:'+col+';">'+pct+'%</span><br><span style="font-size:10px;color:var(--gm);">'+sa.recommendation+'</span></td>';
       })()}
     </tr>`;
   }).join('');
@@ -5553,6 +6152,7 @@ function confirmApproveThis(){
   const ctEl=document.getElementById('set-company-tagline');
   if(cnEl) cnEl.value=COMPANY_NAME;
   if(ctEl) ctEl.value=COMPANY_TAGLINE;
+  initSkillSettings();
 }
 
 function addApprovedDevice(){
