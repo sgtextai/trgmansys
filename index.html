@@ -2373,6 +2373,10 @@ function getSkillsForDept(dept){
 }
 
 function initSkillSettings(){
+  console.log('[SK] initSkillSettings called');
+  console.log('[SK] SKILL_SETTINGS:', JSON.stringify(SKILL_SETTINGS).substr(0,200));
+  console.log('[SK] DEPT_UNITS length:', (DEPT_UNITS||[]).length);
+  if(DEPT_UNITS&&DEPT_UNITS[0]) console.log('[SK] DEPT_UNITS[0]:', JSON.stringify(DEPT_UNITS[0]).substr(0,100));
   // Ensure SKILL_SETTINGS has all required fields
   if(!SKILL_SETTINGS.thresholds) SKILL_SETTINGS.thresholds=[{pct:70,label:'May be Sr. Trainee'},{pct:100,label:'May be Jr. Operator/FTW'}];
   if(!SKILL_SETTINGS.units) SKILL_SETTINGS.units=['NUMBERS','MINUTES','%','KG','SECONDS','',''];
@@ -2406,7 +2410,9 @@ function initSkillSettings(){
 }
 
 function renderSkillThresholds(){
+  console.log('[SK] renderSkillThresholds called, thresholds:', JSON.stringify(SKILL_SETTINGS.thresholds));
   const container=document.getElementById('st-thresholds-list');
+  console.log('[SK] container found:', !!container);
   if(!container) return;
   const thresholds=SKILL_SETTINGS.thresholds||[];
   container.innerHTML=thresholds.map((t,i)=>`
