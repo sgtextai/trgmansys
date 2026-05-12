@@ -2785,15 +2785,8 @@ function saveSkillAssessment(){
 function showSkillDetail(assessId){
   const a=(SKILL_ASSESSMENTS||[]).find(x=>x.id===assessId);
   if(!a) return;
-  const details=a.skills.filter(s=>s.active).map(s=>
-    s.name+': Actual='+s.actual+', Cap='+Math.round(s.capability*100)+'%, Val='+Math.round(s.value*100)+'%'
-  ).join('
-');
-  alert('Assessment: '+fmt(a.date)+'
-Total: '+Math.round(a.totalPct*100)+'%
-Recommendation: '+a.recommendation+'
-
-'+details);
+  const details=a.skills.filter(s=>s.active).map(s=>s.name+': Actual='+s.actual+', Cap='+Math.round(s.capability*100)+'%, Val='+Math.round(s.value*100)+'%').join(' | ');
+  alert('Assessment: '+fmt(a.date)+' | Total: '+Math.round(a.totalPct*100)+'% | Rec: '+a.recommendation+' | '+details);
 }
 
 populateTMSelect();
