@@ -2754,11 +2754,11 @@ function updateSkillTotals(){
     const thresholds=[...(SKILL_SETTINGS.thresholds||[])].sort((a,b)=>b.pct-a.pct);
     let rec='Trainee';
     for(const thr of thresholds){
-      if(totalVal*100>=thr.pct){ rec=thr.label; break; }
+      if(totalVal>=thr.pct){ rec=thr.label; break; }
     }
     if(recEl){
       recEl.textContent=rec;
-      recEl.style.color=totalVal>=1?'var(--green)':totalVal>=0.7?'var(--blue)':'var(--gm)';
+      recEl.style.color=totalVal>=90?'var(--green)':totalVal>=65?'var(--blue)':'var(--gm)';
     }
   } else if(resDiv){
     resDiv.style.display='none';
@@ -2794,7 +2794,7 @@ function saveSkillAssessment(){
   const thresholds=[...(SKILL_SETTINGS.thresholds||[])].sort((a,b)=>b.pct-a.pct);
   let rec='Trainee';
   for(const thr of thresholds){
-    if(totalVal*100>=thr.pct){ rec=thr.label; break; }
+    if(totalVal>=thr.pct){ rec=thr.label; break; }
   }
 
   const assessment={
