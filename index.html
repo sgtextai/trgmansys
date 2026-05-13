@@ -259,6 +259,21 @@ tr:hover td{background:#f8fafc;}
     <div style="margin-top:14px;padding:10px 14px;background:var(--gl);border-radius:10px;text-align:center;">
       <div style="font-size:10px;color:var(--gm);">Your Device Code (share with Admin if access denied)</div>
       <div style="font-size:18px;font-weight:900;color:var(--navy);letter-spacing:3px;margin-top:4px;" id="login-device-code">—</div>
+
+    <!-- MONTHLY ATTENDANCE CALENDAR -->
+    <div class="card" style="margin-top:16px;">
+      <div class="card-hd" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <h3>📅 Monthly Attendance</h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="calNav(-1)" style="background:none;border:1px solid #d0d8e4;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:18px;line-height:1;">&#8249;</button>
+          <span id="cal-month-label" style="font-weight:700;font-size:14px;min-width:130px;text-align:center;"></span>
+          <button onclick="calNav(1)" style="background:none;border:1px solid #d0d8e4;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:18px;line-height:1;">&#8250;</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding:10px;overflow-x:auto;">
+        <div id="dash-calendar"></div>
+      </div>
+    </div>
     </div>
   </div>
 </div>
@@ -2803,6 +2818,95 @@ function showSkillDetail(assessId){
   alert('Assessment: '+fmt(a.date)+' | Total: '+Math.round(a.totalPct*100)+'% | Rec: '+a.recommendation+' | '+details);
 }
 
+// ══════════════════════════════════════════════════════
+// ATTENDANCE CALENDAR
+// ══════════════════════════════════════════════════════
+let calYear=new Date().getFullYear();
+let calMonth=new Date().getMonth(); // 0-based
+
+function calNav(dir){
+  calMonth+=dir;
+  if(calMonth<0){calMonth=11;calYear--;}
+  if(calMonth>11){calMonth=0;calYear++;}
+  renderAttCalendar();
+}
+
+function renderAttCalendar(){
+  const cal=document.getElementById('dash-calendar');
+  const label=document.getElementById('cal-month-label');
+  if(!cal||!label) return;
+
+  const monthNames=['January','February','March','April','May','June',
+    'July','August','September','October','November','December'];
+  const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  label.textContent=monthNames[calMonth]+' '+calYear;
+
+  // Get first day and total days in month
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+
+  // Build date→present count map from ATTENDANCE
+  const countMap={};
+  const prefix=calYear+'-'+(calMonth+1<10?'0':'')+(calMonth+1)+'-';
+  Object.entries(ATTENDANCE||{}).forEach(([date,dayData])=>{
+    if(!date.startsWith(prefix.slice(0,7))) return;
+    const d=date.slice(8,10); // day part
+    let pCount=0;
+    const dateStr=date.slice(0,10);
+    // Count present trainees (not weekly off)
+    TRAINEES.forEach(t=>{
+      const status=(dayData||{})[t.id]||'';
+      if(status==='P') pCount++;
+    });
+    if(pCount>0) countMap[d]=pCount;
+  });
+
+  // Build calendar HTML
+  let calHtml=`<table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+    <thead><tr>`;
+  dayNames.forEach(d=>calHtml+=`<th style="text-align:center;padding:6px 2px;font-size:12px;color:var(--gm);font-weight:600;">${d}</th>`);
+  calHtml+='</tr></thead><tbody><tr>';
+
+  // Empty cells before first day
+  for(let i=0;i<firstDay;i++){
+    calHtml+=`<td style="padding:4px;"></td>`;
+  }
+
+  let dayOfWeek=firstDay;
+  for(let day=1;day<=daysInMonth;day++){
+    const dayStr=day<10?'0'+day:String(day);
+    const count=countMap[dayStr];
+    const isToday=calYear===new Date().getFullYear()&&
+                  calMonth===new Date().getMonth()&&
+                  day===new Date().getDate();
+    const bg=isToday?'var(--navy)':'';
+    const color=isToday?'#fff':count?'var(--navy)':'var(--gm)';
+    const fontWeight=isToday||count?'700':'400';
+
+    calHtml+=`<td style="text-align:center;padding:3px 2px;vertical-align:top;">
+      <div style="border-radius:8px;padding:4px 2px;background:${bg};min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="font-size:11px;color:${isToday?'rgba(255,255,255,0.7)':'var(--gm)'};">${day}</div>
+        <div style="font-size:14px;font-weight:${fontWeight};color:${color};margin-top:2px;">${count||'—'}</div>
+      </div>
+    </td>`;
+
+    dayOfWeek++;
+    if(dayOfWeek===7&&day<daysInMonth){
+      calHtml+='</tr><tr>';
+      dayOfWeek=0;
+    }
+  }
+
+  // Fill remaining cells
+  while(dayOfWeek<7&&dayOfWeek>0){
+    calHtml+=`<td style="padding:4px;"></td>`;
+    dayOfWeek++;
+  }
+  calHtml+='</tr></tbody></table>';
+  cal.innerHTML=calHtml;
+}
+
 populateTMSelect();
 updateQueueBadge();
 
@@ -3208,6 +3312,7 @@ function renderDashboard(){
     tbl+='</table>';
     gridEl.innerHTML=tbl;
   }
+  renderAttCalendar();
 }
 
 // ══════════════════════════════════════════════════════
