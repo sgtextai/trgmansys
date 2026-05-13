@@ -219,6 +219,8 @@ tr:hover td{background:#f8fafc;}
   #conn-banner{display:none;background:#c0392b;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;text-align:center;border-bottom:2px solid #922b21;}
   #conn-banner.warning{background:#e67e22;}
   #conn-banner.success{background:#1e8449;}
+.cal-extra{display:block;}
+@media(max-width:600px){.cal-extra{display:none!important;}}
 </style>
 </head>
 <body>
@@ -2881,15 +2883,22 @@ function renderAttCalendar(){
                   calMonth===new Date().getMonth()&&
                   day===new Date().getDate();
     const bg=isToday?'var(--navy)':'';
-    const color=isToday?'#fff':count?'var(--navy)':'var(--gm)';
-    const fontWeight=isToday||count?'700':'400';
+        const dayColor=isToday?'rgba(255,255,255,0.7)':'var(--gm)';
+        const dateStr2=calYear+'-'+(calMonth+1<10?'0':'')+(calMonth+1)+'-'+(day<10?'0':'')+day;
+        let aCount=0,offCount=0;
+        const dayData2=(ATTENDANCE||{})[dateStr2]||{};
+        TRAINEES.forEach(t=>{
+          const st=dayData2[t.id]||'';
+          if(st==='A') aCount++;
+        });
 
-    calHtml+=`<td style="text-align:center;padding:3px 2px;vertical-align:top;">
-      <div style="border-radius:8px;padding:4px 2px;background:${bg};min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <div style="font-size:11px;color:${isToday?'rgba(255,255,255,0.7)':'var(--gm)'};">${day}</div>
-        <div style="font-size:14px;font-weight:${fontWeight};color:${color};margin-top:2px;">${count||'—'}</div>
+    calHtml+=`<td style="text-align:center;padding:2px 1px;vertical-align:top;">
+      <div style="border-radius:7px;padding:3px 2px;background:${bg};min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="font-size:10px;color:${dayColor};margin-bottom:1px;">${day}</div>
+        <div style="font-size:13px;font-weight:700;color:${isToday?'#6ee7b7':count?'var(--green)':'var(--gm)'};">${count||'—'}</div>
+        <div class="cal-extra" style="font-size:10px;color:${isToday?'#fca5a5':'var(--red)'};">${aCount?aCount:''}</div>
       </div>
-    </td>`;
+    </td>`
 
     dayOfWeek++;
     if(dayOfWeek===7&&day<daysInMonth){
@@ -3191,14 +3200,14 @@ function renderDashboard(){
   document.getElementById('dash-stats').innerHTML=`${pwdWarning}`+`
     <div class="stat-card"><div class="stat-num">${MASTERS.length}</div><div class="stat-lbl">Training Masters</div></div>
     <div class="stat-card"><div class="stat-num">${myTrainees.length}</div><div class="stat-lbl">Total Trainees<br><span style="font-size:11px;color:var(--gm);">incl. ${ctCount} Class Trainees</span></div></div>
-    <div class="stat-card" style="min-width:200px;">
-      <div class="stat-lbl" style="margin-bottom:8px;">Today's Attendance</div>
-      <div style="display:flex;justify-content:space-around;gap:8px;">
-        <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--green);">${present}</div><div style="font-size:10px;color:var(--gm);">Present</div></div>
-        <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--red);">${absent}</div><div style="font-size:10px;color:var(--gm);">Absent</div></div>
-        <div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#e67e22;">${weeklyOff}</div><div style="font-size:10px;color:var(--gm);">Off</div></div>
+    <div class="stat-card" style="padding:10px 12px;min-width:150px;">
+      <div style="font-size:10px;color:var(--gm);font-weight:600;margin-bottom:6px;text-align:center;">Today's Attendance</div>
+      <div style="display:flex;justify-content:space-around;gap:4px;">
+        <div style="text-align:center;"><div style="font-size:17px;font-weight:800;color:var(--green);line-height:1.2;">${present}</div><div style="font-size:9px;color:var(--gm);">Present</div></div>
+        <div style="text-align:center;"><div style="font-size:17px;font-weight:800;color:var(--red);line-height:1.2;">${absent}</div><div style="font-size:9px;color:var(--gm);">Absent</div></div>
+        <div style="text-align:center;"><div style="font-size:17px;font-weight:800;color:#888;line-height:1.2;">${weeklyOff}</div><div style="font-size:9px;color:var(--gm);">Off</div></div>
       </div>
-    </div>
+    </div></div>
     <div class="stat-card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;text-align:center;margin-bottom:4px;">
         <span style="font-size:14px;font-weight:700;color:var(--green);">A: ${gradeA}</span>
@@ -5071,38 +5080,41 @@ function exportMonthlyAtt(){
   let trainees=TRAINEES;
   if(tmF) trainees=trainees.filter(t=>t.masterId===tmF);
   if(currentUser.role==='tm') trainees=trainees.filter(t=>t.masterId===currentUser.tmId);
-  // TO sees all trainees in monthly register
 
   const wb=XLSX.utils.book_new();
 
-  let groups=[];
-  if(tmF){
-    const tm=MASTERS.find(m=>m.id===tmF);
-    const list=trainees.filter(t=>t.masterId===tmF);
-    if(list.length) groups.push({tm,list});
-  } else {
-    MASTERS.forEach(tm=>{
-      const list=trainees.filter(t=>t.masterId===tm.id);
-      if(list.length) groups.push({tm,list});
+  // Helper to build rows for a list of trainees
+  function buildRows(list){
+    const header=['#','Name','Roll No.','Department','Unit','Training Master',...dayNums.map(d=>d),'Present','Absent','Off'];
+    const rows=list.map((t,i)=>{
+      const tm=MASTERS.find(m=>m.id===t.masterId);
+      const cells=workDays.map(date=>{
+        if(isOffDay(date,t.woff)) return 'OFF';
+        return (ATTENDANCE[date]||{})[t.id]||'—';
+      });
+      const present=cells.filter(c=>c==='P').length;
+      const absent=cells.filter(c=>c==='A').length;
+      const off=cells.filter(c=>c==='OFF').length;
+      return [i+1,t.name,t.roll,t.dept||'',t.unit||'',tm?tm.name:'',...cells,present,absent,off];
     });
+    return [header,...rows];
   }
 
-  groups.forEach(({tm,list})=>{
-    const header=['#','Name','Roll No.',...dayNums.map(d=>String(d)),'Present','Absent','Att%'];
-    const rows=list.map((t,i)=>{
-      let present=0,absent=0;
-      const cells=workDays.map(date=>{
-        const off=isOffDay(date,t.woff);
-        if(off) return 'OFF';
-        const v=(ATTENDANCE[date]||{})[t.id]||'';
-        if(v==='P')present++; else if(v==='A')absent++;
-        return v||'';
-      });
-      const tot=present+absent;
-      const pct=tot?Math.round((present/tot)*100):0;
-      return [i+1,t.name,t.roll,...cells,present,absent,pct+'%'];
-    });
-    const ws=XLSX.utils.aoa_to_sheet([header,...rows],{cellDates:false});
+  // ── Sheet 1: All Trainees combined ──
+  const allData=buildRows(trainees);
+  const wsAll=XLSX.utils.aoa_to_sheet(allData,{cellDates:false});
+  XLSX.utils.book_append_sheet(wb,wsAll,'All Trainees');
+
+  // ── Per TM sheets ──
+  const tmsToExport=tmF
+    ? MASTERS.filter(m=>m.id===tmF)
+    : MASTERS.filter(m=>trainees.some(t=>t.masterId===m.id));
+
+  tmsToExport.forEach(tm=>{
+    const tmTrainees=trainees.filter(t=>t.masterId===tm.id);
+    if(!tmTrainees.length) return;
+    const data=buildRows(tmTrainees);
+    const ws=XLSX.utils.aoa_to_sheet(data,{cellDates:false});
     const sheetName=tm.name.slice(0,28).replace(/[:\/?*\[\]]/g,'_');
     XLSX.utils.book_append_sheet(wb,ws,sheetName);
   });
@@ -5111,9 +5123,6 @@ function exportMonthlyAtt(){
   logActivity('EXPORT',`Monthly Attendance — ${MONTH_NAMES[month-1]} ${year} exported to Excel`);
 }
 
-// ══════════════════════════════════════════════════════
-// BULK ATTENDANCE IMPORT
-// ══════════════════════════════════════════════════════
 function getBulkDateRange(){
   const from = document.getElementById('bulk-from').value;
   const to   = document.getElementById('bulk-to').value;
