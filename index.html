@@ -2737,11 +2737,11 @@ function updateSkillTotals(){
     const thresholds=[...(SKILL_SETTINGS.thresholds||[])].sort((a,b)=>b.pct-a.pct);
     let rec='Trainee';
     for(const thr of thresholds){
-      if(totalVal>=thr.pct){ rec=thr.label; break; }
+      if(totalVal*100>=thr.pct){ rec=thr.label; break; }
     }
     if(recEl){
       recEl.textContent=rec;
-      recEl.style.color=totalVal>=90?'var(--green)':totalVal>=65?'var(--blue)':'var(--gm)';
+      recEl.style.color=totalVal>=1?'var(--green)':totalVal>=0.7?'var(--blue)':'var(--gm)';
     }
   } else if(resDiv){
     resDiv.style.display='none';
@@ -2777,7 +2777,7 @@ function saveSkillAssessment(){
   const thresholds=[...(SKILL_SETTINGS.thresholds||[])].sort((a,b)=>b.pct-a.pct);
   let rec='Trainee';
   for(const thr of thresholds){
-    if(totalVal>=thr.pct){ rec=thr.label; break; }
+    if(totalVal*100>=thr.pct){ rec=thr.label; break; }
   }
 
   const assessment={
@@ -5668,10 +5668,18 @@ function resetRptFilters(){
   if(tmSel) tmSel.value='';
   if(trSel) trSel.innerHTML='<option value="">All Trainees</option>';
   if(search) search.value='';
-  renderReport();
+  const out=document.getElementById('report-output');
+  if(out) out.innerHTML='<div class="card"><div class="card-body" style="text-align:center;color:var(--gm);padding:30px;">Select filters and click <strong>Generate</strong> to view report.</div></div>';
 }
 
-function initReport(){refreshTMDropdowns();renderReport();}
+function initReport(){
+  refreshTMDropdowns();
+  // Don't auto-render all trainees - wait for Generate click
+  const out=document.getElementById('report-output');
+  if(out && !out.innerHTML.trim()){
+    out.innerHTML='<div class="card"><div class="card-body" style="text-align:center;color:var(--gm);padding:30px;">Select filters and click <strong>Generate</strong> to view report.</div></div>';
+  }
+}
 function getTestsForTrainee(tid){
   // Match by traineeId (new) OR by name+roll fallback (for tests taken before dropdown was added)
   const tr=TRAINEES.find(t=>t.id===tid);
@@ -5727,6 +5735,8 @@ function renderReport(){
     const attPct=calcAttPct(t.id);
     const avgDisc=calcAvgDisc(t.id);
     const allTests=getTestsForTrainee(t.id);
+    const isArchived=ARCHIVED.some(x=>x.id===t.id);
+    const sa=isArchived?null:(SKILL_ASSESSMENTS||[]).filter(a=>a.traineeId===t.id).sort((a,b)=>b.date.localeCompare(a.date))[0];
     return `<tr>
       <td><strong>${t.name}</strong><br><span style="font-size:11px;color:var(--gm)">${t.roll}</span></td>
       <td>${tm?tm.name:'—'}</td><td>${t.dept||'—'}</td><td>${t.unit||'—'}</td><td>${fmt(t.doj)}</td>
@@ -5739,7 +5749,6 @@ function renderReport(){
       <td style="min-width:220px;">${last3Html(t.id)}</td>
       ${(()=>{
         const ct=getCTSummary(t.id);
-        const sa=(SKILL_ASSESSMENTS||[]).filter(a=>a.traineeId===t.id).sort((a,b)=>b.date.localeCompare(a.date))[0];
         if(!ct) return '<td style="color:var(--gm);font-size:12px;text-align:center;">—</td>';
         const detailId='ct-detail-'+t.id;
         return `<td style="min-width:180px;font-size:12px;">
@@ -5769,7 +5778,7 @@ function renderReport(){
         if(!sa) return '<td style="color:var(--gm);text-align:center;font-size:12px;">—</td>';
         const pct=Math.round((sa.totalPct||0)*100);
         const col=pct>=100?'var(--green)':pct>=70?'var(--blue)':'var(--gm)';
-        return '<td style="text-align:center;font-size:12px;"><span style="font-weight:700;color:'+col+';">'+pct+'%</span><br><span style="font-size:10px;color:var(--gm);">'+sa.recommendation+'</span></td>';
+        return '<td style="text-align:center;font-size:12px;"><span style="font-weight:700;color:'+col+';">'+pct+'%</span><br><span style="font-size:10px;color:var(--gm);">'+(sa.recommendation||'')+'</span></td>';
       })()}
     </tr>`;
   }).join('');
