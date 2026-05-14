@@ -2774,28 +2774,28 @@ function saveSkillAssessment(){
   const skills=getSkillsForDept(dept);
   const dateVal=document.getElementById('st-date').value||today();
 
-  // Collect skill values
-  let totalVal=0;
+  // Guard: result must be visible (all fields filled) before saving
+  const resDiv=document.getElementById('st-result');
+  if(!resDiv||resDiv.style.display==='none'){
+    alert('Please fill in all skill values before saving.');return;
+  }
+
+  // Read totalPct and recommendation directly from the already-computed display elements
+  const totalPctStr=document.getElementById('st-total-value').textContent||'0';
+  const totalVal=parseFloat(totalPctStr)/100; // convert "94.00%" → 0.94 for storage
+  const rec=document.getElementById('st-result-rec').textContent||'Trainee';
+
+  // Collect per-skill data from DOM — actuals from inputs, cap/value from computed cells
   const skillData=skills.map((s,i)=>{
     if(!s.active||!s.weightage) return {name:s.name,active:false,actual:'',capability:0,value:0};
-    const actualEl=document.getElementById('st-actual-'+i);
-    const actual=actualEl?parseFloat(actualEl.value)||0:0;
-    const norm=parseFloat(s.norm)||1;
-    let cap=0;
-    if(s.impact==='P') cap=actual/norm;
-    else if(s.impact==='N') cap=norm/(actual||0.001);
-    const val=cap*s.weightage;
-    totalVal+=val;
+    const actual=parseFloat((document.getElementById('st-actual-'+i)||{}).value)||0;
+    const capText=(document.getElementById('st-cap-'+i)||{}).textContent||'0';
+    const valText=(document.getElementById('st-val-'+i)||{}).textContent||'0';
+    const cap=parseFloat(capText)/100;   // "94.0%" → 0.94
+    const val=parseFloat(valText)/100;   // "18.80%" → 0.188
     return {name:s.name,unit:s.unit,norm:s.norm,impact:s.impact,
             weightage:s.weightage,active:true,actual,capability:cap,value:val};
   });
-
-  // Get recommendation
-  const thresholds=[...(SKILL_SETTINGS.thresholds||[])].sort((a,b)=>b.pct-a.pct);
-  let rec='Trainee';
-  for(const thr of thresholds){
-    if(totalVal>=thr.pct){ rec=thr.label; break; }
-  }
 
   const assessment={
     id:uid(), traineeId:tid, traineeName:t.name, roll:t.roll,
