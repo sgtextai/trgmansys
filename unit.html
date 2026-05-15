@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMPL Unit Supervisor Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1a3a5c;--navy-dark:#102540;--gold:#c8a84b;--gold-light:#e8c96e;
+  --white:#fff;--cream:#fdf8f0;--gl:#f2f4f7;--gm:#8a9bb0;--text:#1e2d3d;
+  --green:#1e8449;--red:#c0392b;--orange:#e67e22;--blue:#2980b9;
+  --shadow:0 4px 24px rgba(26,58,92,.13);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans Devanagari',sans-serif;background:#f0f4f8;color:var(--text);min-height:100vh;}
+button,input,select,textarea{font-family:inherit;}
+
+/* ── LOGIN ── */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0e2033,#1a3a5c);}
+.login-card{background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.4);width:100%;max-width:400px;overflow:hidden;}
+.login-hd{background:var(--navy);padding:28px 32px;text-align:center;border-bottom:4px solid var(--gold);}
+.login-hd h1{color:#fff;font-size:18px;margin-bottom:4px;}
+.login-hd p{color:var(--gold-light);font-size:12px;}
+.login-body{padding:28px 32px;}
+.login-field{margin-bottom:14px;}
+.login-field label{font-size:12px;font-weight:600;color:var(--navy);display:block;margin-bottom:5px;}
+.login-field input,.login-field select{width:100%;padding:11px 14px;border:1.5px solid #d0d8e4;border-radius:10px;font-size:14px;outline:none;transition:.2s;}
+.login-field input:focus,.login-field select:focus{border-color:var(--navy);}
+.login-btn{width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;border-bottom:4px solid var(--gold);}
+.login-err{color:var(--red);font-size:13px;margin-top:10px;text-align:center;display:none;}
+
+/* ── APP SHELL ── */
+.app-shell{display:none;flex-direction:column;min-height:100vh;}
+.top-bar{background:var(--navy);border-bottom:3px solid var(--gold);padding:10px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:200;}
+.top-bar .logo{color:#fff;font-size:15px;font-weight:700;line-height:1.3;}
+.top-bar .logo span{display:block;font-size:10px;color:var(--gold-light);font-weight:400;}
+.top-bar .user-badge{margin-left:auto;background:rgba(255,255,255,.12);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--gold-light);}
+.top-bar .logout-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;}
+.main-nav{background:var(--navy-dark);display:flex;overflow-x:auto;border-bottom:2px solid var(--gold);scrollbar-width:none;}
+.main-nav::-webkit-scrollbar{display:none;}
+.nav-tab{flex-shrink:0;padding:8px 14px;font-size:12px;font-weight:600;color:var(--gm);cursor:pointer;border:none;background:transparent;border-bottom:3px solid transparent;white-space:nowrap;transition:.2s;}
+.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.nav-tab:hover{color:#fff;}
+.page{display:none;padding:20px;max-width:1100px;margin:0 auto;width:100%;}
+.page.active{display:block;}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+.card-hd{background:var(--navy);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}
+.card-hd h3{color:#fff;font-size:14px;font-weight:700;}
+.card-hd span{color:var(--gold-light);font-size:12px;}
+.card-body{padding:18px;}
+.section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.section-hd h2{font-size:17px;font-weight:700;color:var(--navy);}
+
+/* ── BUTTONS ── */
+.btn{padding:9px 18px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--navy);color:#fff;border-bottom:3px solid var(--gold);}
+.btn-light{background:#fff;color:var(--navy);border:1.5px solid #d0d8e4;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.form-field label{font-size:12px;font-weight:600;color:var(--navy);display:block;margin-bottom:5px;}
+.form-field input,.form-field select{width:100%;padding:9px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;outline:none;}
+
+/* ── TABLES ── */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid #e0e7ef;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--navy);color:#fff;padding:10px 12px;text-align:left;font-size:12px;white-space:nowrap;}
+td{padding:9px 12px;border-bottom:1px solid #f0f4f8;vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even) td{background:#f8fafc;}
+
+/* ── BADGES ── */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-green{background:#d4edda;color:#155724;}
+.badge-blue{background:#d1ecf1;color:#0c5460;}
+.badge-orange{background:#fff3cd;color:#856404;}
+.badge-red{background:#f8d7da;color:#721c24;}
+.badge-grey{background:#e9ecef;color:#495057;}
+
+/* ── LOADER ── */
+.loader-overlay{position:fixed;inset:0;background:rgba(26,58,92,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#fff;gap:16px;}
+.spinner{width:48px;height:48px;border:5px solid rgba(255,255,255,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div class="loader-overlay" id="loader" style="display:none;">
+  <div class="spinner"></div>
+  <div style="font-size:15px;font-weight:700;">Loading data from server...</div>
+  <div style="font-size:12px;color:var(--gold-light);" id="loader-msg">Please wait</div>
+</div>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login-page">
+  <div class="login-card">
+    <div class="login-hd">
+      <h1>🏭 Unit Supervisor Portal</h1>
+      <p id="login-company">Sagar Manufacturers Pvt. Ltd. | Sagar Yarn | Bhopal</p>
+    </div>
+    <div class="login-body">
+      <div class="login-field">
+        <label>Select Your Unit</label>
+        <select id="unit-select">
+          <option value="">-- Select Unit --</option>
+        </select>
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" id="login-pwd" placeholder="Enter unit password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="login-btn" onclick="doLogin()">Login →</button>
+      <div class="login-err" id="login-err">Incorrect password. Please try again.</div>
+      <p style="font-size:11px;color:var(--gm);margin-top:14px;text-align:center;">Contact Admin if you don't have a password for your unit.</p>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app-shell" id="app">
+  <div class="top-bar">
+    <div class="logo">
+      <span id="top-company-tag">Sagar Manufacturers Pvt. Ltd.</span>
+      Training Management System
+      <span id="top-company-sub">Sagar Yarn | Bhopal, Madhya Pradesh</span>
+    </div>
+    <div class="user-badge" id="user-badge">Unit Supervisor</div>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+  </div>
+  <div class="main-nav">
+    <button class="nav-tab active" onclick="showPage('trainees')">👷 Trainees</button>
+    <button class="nav-tab" onclick="showPage('attendance')">📅 Attendance</button>
+    <button class="nav-tab" onclick="showPage('discipline')">⭐ Discipline</button>
+    <button class="nav-tab" onclick="showPage('mcqresults')">🎯 MCQ Results</button>
+    <button class="nav-tab" onclick="showPage('reports')">📈 Reports</button>
+  </div>
+
+  <!-- TRAINEES PAGE -->
+  <div class="page active" id="page-trainees">
+    <div class="section-hd"><h2>👷 Trainees — <span id="tr-unit-label" style="color:var(--gm);font-size:14px;"></span></h2>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="tr-search" placeholder="🔍 Search name or roll..." onkeyup="renderTrainees()" style="padding:8px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:220px;">
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>Active Trainees</h3><span id="tr-count">0 trainees</span></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Roll No.</th><th>Department</th><th>Joining</th><th>Weekly Off</th><th>Training Master</th><th>Designation</th></tr></thead>
+          <tbody id="tr-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATTENDANCE PAGE -->
+  <div class="page" id="page-attendance">
+    <div class="section-hd"><h2>📅 Attendance — <span id="att-unit-label" style="color:var(--gm);font-size:14px;"></span></h2></div>
+    <div class="card">
+      <div class="card-body">
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div class="form-field">
+            <label>Select Date</label>
+            <input type="date" id="att-date" onchange="renderAttendance()">
+          </div>
+          <div class="form-field">
+            <label>Filter by Department</label>
+            <select id="att-dept" onchange="renderAttendance()"><option value="">All Departments</option></select>
+          </div>
+        </div>
+        <div id="att-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISCIPLINE PAGE -->
+  <div class="page" id="page-discipline">
+    <div class="section-hd"><h2>⭐ Discipline — <span id="disc-unit-label" style="color:var(--gm);font-size:14px;"></span></h2></div>
+    <div class="card">
+      <div class="card-body">
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div class="form-field">
+            <label>Filter by Department</label>
+            <select id="disc-dept" onchange="renderDiscipline()"><option value="">All Departments</option></select>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Roll</th><th>Department</th><th>Training Master</th><th>Latest Grade</th><th>Last Graded</th><th>Avg Grade</th><th>Total Records</th></tr></thead>
+            <tbody id="disc-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MCQ RESULTS PAGE -->
+  <div class="page" id="page-mcqresults">
+    <div class="section-hd"><h2>🎯 MCQ Results — <span id="mcq-unit-label" style="color:var(--gm);font-size:14px;"></span></h2></div>
+    <div class="card">
+      <div class="card-body">
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div class="form-field">
+            <label>Filter by Trainee</label>
+            <select id="mcq-tr-filter" onchange="renderMCQ()"><option value="">All Trainees</option></select>
+          </div>
+          <div class="form-field">
+            <label>Filter by Date From</label>
+            <input type="date" id="mcq-date-from" onchange="renderMCQ()">
+          </div>
+          <div class="form-field">
+            <label>Filter by Date To</label>
+            <input type="date" id="mcq-date-to" onchange="renderMCQ()">
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Date</th><th>Name</th><th>Roll</th><th>Paper</th><th>Correct</th><th>Wrong</th><th>Skip</th><th>Total</th><th>Score%</th><th>Grade</th><th>Time</th></tr></thead>
+            <tbody id="mcq-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORTS PAGE -->
+  <div class="page" id="page-reports">
+    <div class="section-hd"><h2>📈 Reports — <span id="rpt-unit-label" style="color:var(--gm);font-size:14px;"></span></h2></div>
+    <div class="card">
+      <div class="card-body">
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div class="form-field">
+            <label>Filter by Trainee</label>
+            <select id="rpt-tr"><option value="">All Trainees</option></select>
+          </div>
+          <div class="form-field">
+            <label>Search</label>
+            <input type="text" id="rpt-search" placeholder="Name or roll no..." style="padding:9px 12px;border:1.5px solid #d0d8e4;border-radius:9px;font-size:13px;width:100%;">
+          </div>
+          <div class="form-field" style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" onclick="renderReport()">🔍 Generate</button>
+          </div>
+        </div>
+        <div id="report-output">
+          <div class="card"><div class="card-body" style="text-align:center;color:var(--gm);padding:30px;">Select filters and click <strong>Generate</strong> to view report.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIG — matches index.html exactly
+// ══════════════════════════════════════════════════════
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbzz2TJfUXN6EPI4cAhfK0FFCzbfEWoUDLR1OYuH9-hgVdTD8HsqYOB7OLsAC_Nh4wsb/exec';
+const SECRET_KEY='SMPL-fDWHUdTd7qTavPyEl2PEbJPHN3Z9PFeD';
+
+// ══════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════
+let TRAINEES=[], MASTERS=[], ARCHIVED=[], ATTENDANCE={}, DISCIPLINE={};
+let MCQ_RESULTS=[], DEPT_UNITS=[], UNIT_PWDS={};
+let COMPANY_NAME='Sagar Manufacturers Pvt. Ltd.';
+let COMPANY_TAGLINE='Sagar Yarn | Bhopal, Madhya Pradesh';
+let currentUnit='';
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+const today=()=>new Date().toISOString().slice(0,10);
+
+function fmt(d){
+  if(!d||d==='') return '—';
+  const s=String(d).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)){
+    const [y,m,dd]=s.split('-');
+    return dd+'-'+m+'-'+y;
+  }
+  return s;
+}
+
+function isOffDay(dateStr,woff){
+  return new Date(dateStr).getDay()===(woff!==undefined?woff:0);
+}
+
+function calcAttPct(tid){
+  const tr=TRAINEES.find(x=>x.id===tid);
+  const woff=tr&&tr.woff!==undefined?tr.woff:0;
+  let p=0,t=0;
+  Object.entries(ATTENDANCE).forEach(([date,day])=>{
+    if(isOffDay(date,woff)) return;
+    if(day[tid]) t++, p+=(day[tid]==='P'?1:0);
+  });
+  return t===0?0:Math.round((p/t)*100);
+}
+
+function calcAvgDisc(tid){
+  const recs=(DISCIPLINE[tid]||[]);
+  if(!recs.length) return '—';
+  const map={'A':4,'B':3,'C':2,'D':1};
+  const avg=recs.reduce((s,r)=>s+(map[r.grade]||0),0)/recs.length;
+  if(avg>=3.5) return 'A';
+  if(avg>=2.5) return 'B';
+  if(avg>=1.5) return 'C';
+  return 'D';
+}
+
+function getTestsForTrainee(tid){
+  const tr=TRAINEES.find(t=>t.id===tid);
+  return [...MCQ_RESULTS].filter(r=>{
+    if(r.traineeId===tid) return true;
+    if(!r.traineeId&&tr&&r.traineeName&&r.traineeName.toLowerCase()===tr.name.toLowerCase()) return true;
+    if(!r.traineeId&&tr&&r.roll&&r.roll===tr.roll) return true;
+    return false;
+  }).sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function last3Html(tid){
+  const tests=getTestsForTrainee(tid).slice(-3);
+  if(!tests.length) return '<span style="color:var(--gm);font-size:12px;">No tests</span>';
+  const gc=g=>g==='A+'||g==='A'?'var(--green)':g==='B'?'var(--blue)':g==='C'?'var(--orange)':'var(--red)';
+  return tests.map(r=>`<div style="font-size:11px;margin-bottom:4px;padding:4px 8px;border-radius:6px;background:${gc(r.grade)}15;border-left:3px solid ${gc(r.grade)};">
+    <span style="color:var(--gm);">${fmt(r.date)}</span> &nbsp;
+    <strong>${r.correct}/${r.total}</strong> &nbsp;
+    <span style="color:${gc(r.grade)};font-weight:700;">${r.grade} (${r.pct}%)</span> &nbsp;
+    <span style="color:var(--blue);font-size:10px;">⏱${r.timeTaken||'—'}</span>
+  </div>`).join('');
+}
+
+function myTrainees(){
+  return TRAINEES.filter(t=>t.unit===currentUnit);
+}
+
+function showLoader(msg){
+  document.getElementById('loader').style.display='flex';
+  document.getElementById('loader-msg').textContent=msg||'Please wait';
+}
+function hideLoader(){
+  document.getElementById('loader').style.display='none';
+}
+
+// ══════════════════════════════════════════════════════
+// LOAD DATA FROM GOOGLE SHEET
+// ══════════════════════════════════════════════════════
+// Default units — fallback if GS load fails or deptUnits is empty
+const DEFAULT_DEPT_UNITS=[
+  {unit:'Yarn Unit 1'},{unit:'Yarn Unit 2'},{unit:'Yarn Unit 3'},
+  {unit:'Yarn Unit 4'},{unit:'Yarn Unit 5'},{unit:'Yarn Unit 6'},
+  {unit:'Knit Unit 1'},{unit:'Knit Unit 2'}
+];
+
+async function loadFromGS(){
+  showLoader('Fetching latest data from server...');
+  try{
+    const resp=await fetch(APPS_SCRIPT_URL+'?key='+SECRET_KEY,{
+      method:'GET',
+      redirect:'follow'
+    });
+    const data=await resp.json();
+    if(!data.ok) throw new Error(data.error||'Load failed');
+
+    TRAINEES      = data.trainees      || [];
+    MASTERS       = data.masters       || [];
+    ARCHIVED      = data.archived      || [];
+    ATTENDANCE    = data.attendance    || {};
+    DISCIPLINE    = data.discipline    || {};
+    MCQ_RESULTS   = data.results       || [];
+    // Use GS deptUnits if available, else fall back to defaults
+    DEPT_UNITS    = (data.deptUnits && data.deptUnits.length>0) ? data.deptUnits : DEFAULT_DEPT_UNITS;
+    UNIT_PWDS     = (data.settings&&data.settings.unitPwds) || {};
+
+    if(data.settings&&data.settings.companyName)    COMPANY_NAME=data.settings.companyName;
+    if(data.settings&&data.settings.companyTagline) COMPANY_TAGLINE=data.settings.companyTagline;
+
+    // Fix woff to number
+    TRAINEES.forEach(t=>{ if(t.woff!=='') t.woff=Number(t.woff); });
+
+    return true;
+  } catch(e){
+    // GS failed — still show units from defaults so supervisor can at least see the dropdown
+    DEPT_UNITS=DEFAULT_DEPT_UNITS;
+    alert('Could not load data from server: '+e.message+'\nShowing unit list from defaults. Please check your connection and refresh.');
+    return false;
+  } finally {
+    hideLoader();
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════════════
+async function initLogin(){
+  showLoader('Loading unit list...');
+  const ok=await loadFromGS();
+  hideLoader();
+  if(!ok) return;
+
+  // Populate unit dropdown
+  const sel=document.getElementById('unit-select');
+  sel.innerHTML='<option value="">-- Select Unit --</option>';
+  (DEPT_UNITS||[]).forEach(u=>{
+    sel.innerHTML+=`<option value="${u.unit}">${u.unit}</option>`;
+  });
+
+  // Update company name on login screen
+  document.getElementById('login-company').textContent=COMPANY_NAME+' | '+COMPANY_TAGLINE;
+}
+
+function doLogin(){
+  const unitName=document.getElementById('unit-select').value;
+  const pwd=document.getElementById('login-pwd').value;
+  const err=document.getElementById('login-err');
+  err.style.display='none';
+
+  if(!unitName){err.style.display='block';err.textContent='Please select your unit.';return;}
+
+  const unitPwd=UNIT_PWDS[unitName]||'';
+  if(!unitPwd){err.style.display='block';err.textContent='No password set for this unit. Contact Admin.';return;}
+  if(pwd!==unitPwd){err.style.display='block';err.textContent='Incorrect password. Please try again.';return;}
+
+  currentUnit=unitName;
+  launchApp();
+}
+
+function launchApp(){
+  document.getElementById('login-page').style.display='none';
+  const app=document.getElementById('app');
+  app.style.display='flex';
+  app.style.flexDirection='column';
+
+  document.getElementById('user-badge').textContent='Unit: '+currentUnit;
+  document.getElementById('top-company-tag').textContent=COMPANY_NAME;
+  document.getElementById('top-company-sub').textContent=COMPANY_TAGLINE;
+
+  // Set unit label on all pages
+  ['tr','att','disc','mcq','rpt'].forEach(p=>{
+    const el=document.getElementById(p+'-unit-label');
+    if(el) el.textContent=currentUnit;
+  });
+
+  // Populate dept filters
+  const depts=[...new Set(myTrainees().map(t=>t.dept).filter(d=>d))].sort();
+  ['att-dept','disc-dept'].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel) return;
+    sel.innerHTML='<option value="">All Departments</option>';
+    depts.forEach(d=>sel.innerHTML+=`<option value="${d}">${d}</option>`);
+  });
+
+  // Populate MCQ trainee filter
+  const mcqTr=document.getElementById('mcq-tr-filter');
+  mcqTr.innerHTML='<option value="">All Trainees</option>';
+  myTrainees().forEach(t=>mcqTr.innerHTML+=`<option value="${t.id}">${t.name} (${t.roll})</option>`);
+
+  // Populate report trainee filter
+  const rptTr=document.getElementById('rpt-tr');
+  rptTr.innerHTML='<option value="">All Trainees</option>';
+  [...myTrainees(),...ARCHIVED.filter(a=>a.unit===currentUnit)]
+    .forEach(t=>{
+      const isArch=ARCHIVED.some(a=>a.id===t.id);
+      rptTr.innerHTML+=`<option value="${t.id}">${t.name} (${t.roll})${isArch?' [Archived]':''}</option>`;
+    });
+
+  // Set default date for attendance
+  document.getElementById('att-date').value=today();
+
+  showPage('trainees');
+}
+
+function doLogout(){
+  if(!confirm('Logout from '+currentUnit+'?')) return;
+  currentUnit='';
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-page').style.display='flex';
+  document.getElementById('login-pwd').value='';
+  document.getElementById('unit-select').value='';
+}
+
+// ══════════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════════
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  const page=document.getElementById('page-'+id);
+  if(page) page.classList.add('active');
+  const tab=document.querySelector(`.nav-tab[onclick="showPage('${id}')"]`);
+  if(tab) tab.classList.add('active');
+
+  if(id==='trainees')   renderTrainees();
+  if(id==='attendance') renderAttendance();
+  if(id==='discipline') renderDiscipline();
+  if(id==='mcqresults') renderMCQ();
+}
+
+// ══════════════════════════════════════════════════════
+// TRAINEES
+// ══════════════════════════════════════════════════════
+const WOFF_LABELS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DESIG_LABELS={'Tr':'Trainee','Sr.Tr.':'Sr. Trainee','FTW':'FTW'};
+const DESIG_BADGE={'Tr':'badge-grey','Sr.Tr.':'badge-blue','FTW':'badge-green'};
+
+function renderTrainees(){
+  const q=(document.getElementById('tr-search').value||'').toLowerCase().trim();
+  let list=myTrainees();
+  if(q) list=list.filter(t=>(t.name||'').toLowerCase().includes(q)||String(t.roll||'').includes(q));
+
+  document.getElementById('tr-count').textContent=list.length+' trainees';
+  const tbody=document.getElementById('tr-tbody');
+  if(!list.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--gm);padding:20px;">No trainees found.</td></tr>';return;}
+
+  tbody.innerHTML=list.map((t,i)=>{
+    const tm=MASTERS.find(m=>m.id===t.masterId);
+    const desig=t.desig||'Tr';
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${t.name}</strong></td>
+      <td>${t.roll||'—'}</td>
+      <td>${t.dept||'—'}</td>
+      <td>${fmt(t.doj)}</td>
+      <td>${WOFF_LABELS[t.woff]||'—'}</td>
+      <td>${tm?tm.name:'—'}</td>
+      <td><span class="badge ${DESIG_BADGE[desig]||'badge-grey'}">${DESIG_LABELS[desig]||desig}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// ATTENDANCE
+// ══════════════════════════════════════════════════════
+function renderAttendance(){
+  const date=document.getElementById('att-date').value||today();
+  const deptF=document.getElementById('att-dept').value;
+  let list=myTrainees();
+  if(deptF) list=list.filter(t=>t.dept===deptF);
+
+  const dayData=ATTENDANCE[date]||{};
+  const out=document.getElementById('att-output');
+
+  if(!list.length){out.innerHTML='<div style="text-align:center;color:var(--gm);padding:20px;">No trainees in this unit.</div>';return;}
+
+  let present=0,absent=0,off=0,unmarked=0;
+  const rows=list.map((t,i)=>{
+    const tm=MASTERS.find(m=>m.id===t.masterId);
+    const isOff=isOffDay(date,t.woff);
+    let status=isOff?'OFF':(dayData[t.id]||'');
+    if(isOff) off++;
+    else if(status==='P') present++;
+    else if(status==='A') absent++;
+    else unmarked++;
+
+    const statusBadge=isOff
+      ?'<span class="badge badge-grey">Weekly Off</span>'
+      :status==='P'?'<span class="badge badge-green">Present</span>'
+      :status==='A'?'<span class="badge badge-red">Absent</span>'
+      :'<span class="badge badge-grey" style="background:#eee;color:#888;">Not Marked</span>';
+
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${t.name}</strong></td>
+      <td>${t.roll||'—'}</td>
+      <td>${t.dept||'—'}</td>
+      <td>${tm?tm.name:'—'}</td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  }).join('');
+
+  out.innerHTML=`
+    <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+      <div style="background:#d4edda;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;color:#155724;">✅ Present: ${present}</div>
+      <div style="background:#f8d7da;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;color:#721c24;">❌ Absent: ${absent}</div>
+      <div style="background:#e9ecef;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;color:#495057;">🔄 Weekly Off: ${off}</div>
+      <div style="background:#fff3cd;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;color:#856404;">⏳ Unmarked: ${unmarked}</div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Name</th><th>Roll</th><th>Department</th><th>Training Master</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// DISCIPLINE
+// ══════════════════════════════════════════════════════
+function renderDiscipline(){
+  const deptF=document.getElementById('disc-dept').value;
+  let list=myTrainees();
+  if(deptF) list=list.filter(t=>t.dept===deptF);
+
+  const tbody=document.getElementById('disc-tbody');
+  if(!list.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--gm);padding:20px;">No trainees found.</td></tr>';return;}
+
+  const gc=g=>g==='A'?'badge-green':g==='B'?'badge-blue':g==='C'?'badge-orange':g==='D'?'badge-red':'badge-grey';
+
+  tbody.innerHTML=list.map((t,i)=>{
+    const tm=MASTERS.find(m=>m.id===t.masterId);
+    const recs=DISCIPLINE[t.id]||[];
+    const latest=recs.length?recs[recs.length-1]:null;
+    const avg=calcAvgDisc(t.id);
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${t.name}</strong></td>
+      <td>${t.roll||'—'}</td>
+      <td>${t.dept||'—'}</td>
+      <td>${tm?tm.name:'—'}</td>
+      <td>${latest?`<span class="badge ${gc(latest.grade)}">${latest.grade}</span>`:'<span style="color:var(--gm);">—</span>'}</td>
+      <td style="font-size:12px;">${latest?fmt(latest.date):'—'}</td>
+      <td>${avg!=='—'?`<span class="badge ${gc(avg)}">${avg}</span>`:'<span style="color:var(--gm);">—</span>'}</td>
+      <td style="text-align:center;">${recs.length||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// MCQ RESULTS
+// ══════════════════════════════════════════════════════
+function renderMCQ(){
+  const trF=document.getElementById('mcq-tr-filter').value;
+  const fromF=document.getElementById('mcq-date-from').value;
+  const toF=document.getElementById('mcq-date-to').value;
+
+  const myIds=new Set(myTrainees().map(t=>t.id));
+  let list=MCQ_RESULTS.filter(r=>myIds.has(r.traineeId));
+  if(trF) list=list.filter(r=>r.traineeId===trF);
+  if(fromF) list=list.filter(r=>r.date>=fromF);
+  if(toF) list=list.filter(r=>r.date<=toF);
+  list.sort((a,b)=>b.date.localeCompare(a.date));
+
+  const gc=g=>g==='A+'||g==='A'?'badge-green':g==='B'?'badge-blue':g==='C'?'badge-orange':'badge-red';
+  const tbody=document.getElementById('mcq-tbody');
+
+  if(!list.length){tbody.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--gm);padding:20px;">No MCQ results found.</td></tr>';return;}
+
+  tbody.innerHTML=list.map((r,i)=>`<tr>
+    <td>${i+1}</td>
+    <td>${fmt(r.date)}</td>
+    <td>${r.traineeName||'—'}</td>
+    <td>${r.roll||'—'}</td>
+    <td style="font-size:11px;">${r.paper||'—'}</td>
+    <td style="color:var(--green);font-weight:700;">${r.correct}</td>
+    <td style="color:var(--red);font-weight:700;">${r.wrong}</td>
+    <td style="color:var(--gm);">${r.skip}</td>
+    <td>${r.total}</td>
+    <td style="font-weight:700;">${r.pct}%</td>
+    <td><span class="badge ${gc(r.grade)}">${r.grade}</span></td>
+    <td style="font-size:11px;">${r.timeTaken||'—'}</td>
+  </tr>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// REPORTS
+// ══════════════════════════════════════════════════════
+function renderReport(){
+  const trF=document.getElementById('rpt-tr').value;
+  const q=(document.getElementById('rpt-search').value||'').toLowerCase().trim();
+
+  const allForUnit=[...myTrainees(),...ARCHIVED.filter(a=>a.unit===currentUnit)];
+  let list=trF?allForUnit.filter(t=>t.id===trF):allForUnit;
+  if(q) list=list.filter(t=>(t.name||'').toLowerCase().includes(q)||String(t.roll||'').includes(q));
+
+  const out=document.getElementById('report-output');
+  if(!list.length){out.innerHTML='<div class="card"><div class="card-body" style="text-align:center;color:var(--gm);">No trainees found.</div></div>';return;}
+
+  const desigLabel={'Tr':'Trainee','Sr.Tr.':'Sr. Trainee','FTW':'FTW'};
+  const desigBadge={'Tr':'badge-grey','Sr.Tr.':'badge-blue','FTW':'badge-green'};
+
+  const rows=list.map(t=>{
+    const tm=MASTERS.find(m=>m.id===t.masterId);
+    const attPct=calcAttPct(t.id);
+    const avgDisc=calcAvgDisc(t.id);
+    const allTests=getTestsForTrainee(t.id);
+    const isArchived=ARCHIVED.some(x=>x.id===t.id);
+    const desig=t.desig||'Tr';
+    const gc=g=>g==='A'?'badge-green':g==='B'?'badge-blue':g==='C'?'badge-orange':g==='D'?'badge-red':'badge-grey';
+
+    return `<tr>
+      <td><strong>${t.name}</strong><br><span style="font-size:11px;color:var(--gm)">${t.roll}${isArchived?' <span style="color:var(--orange);">[Archived]</span>':''}</span></td>
+      <td>${tm?tm.name:'—'}</td>
+      <td>${t.dept||'—'}</td>
+      <td>${fmt(t.doj)}</td>
+      <td><span class="badge ${desigBadge[desig]||'badge-grey'}">${desigLabel[desig]||desig}</span></td>
+      <td style="font-size:12px;">${t.dop1?fmt(t.dop1):'—'}</td>
+      <td style="font-size:12px;">${t.dop2?fmt(t.dop2):'—'}</td>
+      <td><span class="badge ${attPct>=80?'badge-green':attPct>=60?'badge-orange':'badge-red'}">${attPct}%</span></td>
+      <td><span class="badge ${avgDisc==='A'?'badge-green':avgDisc==='B'?'badge-blue':avgDisc==='C'?'badge-orange':avgDisc==='D'?'badge-red':'badge-grey'}">${avgDisc}</span></td>
+      <td style="text-align:center;font-weight:700;">${allTests.length}</td>
+      <td style="min-width:220px;">${last3Html(t.id)}</td>
+    </tr>`;
+  }).join('');
+
+  out.innerHTML=`<div class="card">
+    <div class="card-hd"><h3>Trainee Performance Report — ${currentUnit}</h3><span>${list.length} trainees</span></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Name / Roll</th><th>Training Master</th><th>Department</th><th>Joining</th><th>Designation</th><th>1st DOP</th><th>2nd DOP</th><th>Attendance</th><th>Avg Discipline</th><th>Tests Taken</th><th>Last 3 MCQ Scores</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+initLogin();
+</script>
+</body>
+</html>

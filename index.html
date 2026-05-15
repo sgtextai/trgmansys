@@ -238,10 +238,15 @@ tr:hover td{background:#f8fafc;}
       <button class="role-btn active" onclick="setRole('admin',this)">🔐 Admin</button>
       <button class="role-btn" onclick="setRole('to',this)">📋 Training Officer</button>
       <button class="role-btn" onclick="setRole('tm',this)">👨‍🏫 Training Master</button>
+      <button class="role-btn" onclick="setRole('unit',this)">🏭 Unit Supervisor</button>
     </div>
     <div class="login-field" id="tm-select-wrap" style="display:none;">
       <label>Select Your Name</label>
       <select id="tm-select"><option value="">-- Select Training Master --</option></select>
+    </div>
+    <div class="login-field" id="unit-select-wrap" style="display:none;">
+      <label>Select Your Unit</label>
+      <select id="unit-select"><option value="">-- Select Unit --</option></select>
     </div>
     <div class="login-field" id="to-pwd-wrap" style="display:none;">
       <label>Training Officer Password</label>
@@ -1253,6 +1258,16 @@ tr:hover td{background:#f8fafc;}
       </div>
     </div>
 
+    <!-- Unit Supervisor Passwords -->
+    <div class="card admin-only">
+      <div class="card-hd"><h3>🏭 Unit Supervisor Passwords</h3></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--gm);margin-bottom:14px;">Set a password for each unit. Unit supervisors select their unit on login and enter this password. Leave blank to disable login for that unit.</p>
+        <div id="unit-pwd-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:14px;"></div>
+        <button class="btn btn-primary" onclick="saveUnitPwds()">💾 Save Unit Passwords</button>
+      </div>
+    </div>
+
     <!-- Password -->
         <div class="card admin-only">
       <div class="card-hd"><h3>🏢 Company Details</h3></div>
@@ -1938,6 +1953,7 @@ let MCQ_RESULTS=LS.get('smpl_results',[]);  // [{date,traineeId,traineeName,roll
 let ADMIN_PWD=LS.get('smpl_admin_pwd','SMPL2024');
 let TM_DEFAULT_PWD=LS.get('smpl_tm_pwd','TM2024');
 let TO_DEFAULT_PWD=LS.get('smpl_to_pwd','TO2024');
+let UNIT_PWDS=LS.get('smpl_unit_pwds',{});  // {unitName: password}
 let APPROVED_DEVICES=LS.get('smpl_devices',[]); // [{code,label,role,dateAdded,active}]
 let DEVICE_CHECK_ENABLED=LS.get('smpl_device_check',false); // false until admin enables it
 
@@ -2030,12 +2046,13 @@ function saveDiscipline(){gsSync('saveDiscipline',DISCIPLINE,'smpl_disc',     DI
 function saveQuestions(){ gsSync('saveQuestions',PAPERS,     'smpl_papers',   PAPERS);    }
 
 function saveSettings(){
-  const s={adminPwd:ADMIN_PWD,tmPwd:TM_DEFAULT_PWD,toPwd:TO_DEFAULT_PWD};
+  const s={adminPwd:ADMIN_PWD,tmPwd:TM_DEFAULT_PWD,toPwd:TO_DEFAULT_PWD,unitPwds:UNIT_PWDS};
   gsSync('saveSettings',s,'smpl_settings',s);
   // Also keep individual LS keys for backward compat
   LS.set('smpl_admin_pwd',ADMIN_PWD);
   LS.set('smpl_tm_pwd',TM_DEFAULT_PWD);
   LS.set('smpl_to_pwd',TO_DEFAULT_PWD);
+  LS.set('smpl_unit_pwds',UNIT_PWDS);
 }
 
 function saveDevices(){
@@ -2046,7 +2063,7 @@ function saveDevices(){
 }
 
 function loadSettingsObj(){
-  return {adminPwd:ADMIN_PWD,tmPwd:TM_DEFAULT_PWD,toPwd:TO_DEFAULT_PWD,
+  return {adminPwd:ADMIN_PWD,tmPwd:TM_DEFAULT_PWD,toPwd:TO_DEFAULT_PWD,unitPwds:UNIT_PWDS,
           devices:APPROVED_DEVICES,deviceCheck:DEVICE_CHECK_ENABLED};
 }
 
@@ -2198,6 +2215,7 @@ async function loadFromGoogleSheets(){
       }
       if(data.settings   && data.settings.tmPwd)       TM_DEFAULT_PWD   = data.settings.tmPwd;
       if(data.settings   && data.settings.toPwd)       TO_DEFAULT_PWD   = data.settings.toPwd;
+      if(data.settings   && data.settings.unitPwds)    { UNIT_PWDS = data.settings.unitPwds; LS.set('smpl_unit_pwds',UNIT_PWDS); }
       if(data.settings   && data.settings.deviceCheck!==undefined)
         DEVICE_CHECK_ENABLED=(data.settings.deviceCheck===true||data.settings.deviceCheck==='true')?true:false;
       if(data.devices){
@@ -2362,6 +2380,14 @@ function setRole(r,btn){
   btn.classList.add('active');
   document.getElementById('tm-select-wrap').style.display=r==='tm'?'':'none';
   document.getElementById('to-pwd-wrap').style.display=r==='to'?'':'none';
+  document.getElementById('unit-select-wrap').style.display=r==='unit'?'':'none';
+  if(r==='unit'){
+    const sel=document.getElementById('unit-select');
+    sel.innerHTML='<option value="">-- Select Unit --</option>';
+    (DEPT_UNITS||[]).forEach(u=>{
+      sel.innerHTML+=`<option value="${u.unit}">${u.unit}</option>`;
+    });
+  }
 }
 // ── DEVICE CHECK ON LOAD ──────────────────────────────
 // Populate device code on login screen
@@ -2988,12 +3014,21 @@ function doLogin(){
   }
   if(loginRole==='admin'){
     if(!deviceRoleAllowed('admin')){err.style.display='block';err.textContent='This device is not approved for Admin access.';return;}
-    if(pwd===ADMIN_PWD){currentUser={role:'admin',name:'Admin',tmId:''};launchApp();}
+    if(pwd===ADMIN_PWD){currentUser={role:'admin',name:'Admin',tmId:'',unitName:''};launchApp();}
     else{err.style.display='block';err.textContent='Incorrect password. Please try again.';}
   } else if(loginRole==='to'){
     if(!deviceRoleAllowed('to')){err.style.display='block';err.textContent='This device is not approved for Training Officer access.';return;}
-    if(pwd===TO_DEFAULT_PWD){currentUser={role:'to',name:'Training Officer',tmId:''};launchApp();}
+    if(pwd===TO_DEFAULT_PWD){currentUser={role:'to',name:'Training Officer',tmId:'',unitName:''};launchApp();}
     else{err.style.display='block';err.textContent='Incorrect Training Officer password.';}
+  } else if(loginRole==='unit'){
+    const unitName=document.getElementById('unit-select').value;
+    if(!unitName){err.style.display='block';err.textContent='Please select your unit.';return;}
+    const unitPwd=UNIT_PWDS[unitName]||'';
+    if(!unitPwd){err.style.display='block';err.textContent='No password set for this unit. Contact Admin.';return;}
+    if(pwd===unitPwd){
+      currentUser={role:'unit',name:unitName,tmId:'',unitName};
+      launchApp();
+    } else {err.style.display='block';err.textContent='Incorrect unit password.';}
   } else {
     if(!deviceRoleAllowed('tm')){err.style.display='block';err.textContent='This device is not approved for Training Master access.';return;}
     const tmId=document.getElementById('tm-select').value;
@@ -3016,10 +3051,20 @@ function launchApp(){
   document.getElementById('app').style.display='flex';
   const bar=document.getElementById('sync-bar');
   if(bar) bar.classList.remove('show');
-  const roleLabel=currentUser.role==='admin'?'Admin':currentUser.role==='to'?'Training Officer':'TM: '+currentUser.name;
+  const roleLabel=currentUser.role==='admin'?'Admin':currentUser.role==='to'?'Training Officer':currentUser.role==='unit'?'Unit: '+currentUser.unitName:'TM: '+currentUser.name;
   document.getElementById('user-badge').textContent=roleLabel;
   document.querySelectorAll('.admin-only').forEach(el=>el.style.display=currentUser.role==='admin'?'':'none');
   document.querySelectorAll('.to-access').forEach(el=>el.style.display=(currentUser.role==='admin'||currentUser.role==='to')?'':'none');
+
+  // Unit supervisor nav — show only: Dashboard, Trainees, Attendance, Discipline, Reports
+  const unitAllowed=['dashboard','trainees','attendance','discipline','reports'];
+  document.querySelectorAll('.nav-tab').forEach(el=>{
+    if(currentUser.role!=='unit') return;
+    const onclick=el.getAttribute('onclick')||'';
+    const match=onclick.match(/showPage\('(\w+)'\)/);
+    const page=match?match[1]:'';
+    el.style.display=unitAllowed.includes(page)?'':'none';
+  });
   const toNotice=document.getElementById('to-att-notice');
   if(toNotice) toNotice.style.display=currentUser.role==='to'?'':'none';
   const markAllBtn=document.querySelector('[onclick="markAllPresent()"]');
@@ -3124,9 +3169,9 @@ function showPage(id){
   if(id==='settings'){if(currentUser.role!=='admin'){alert('Access denied. Admin only.');return;}initSettings();}
   if(id==='activitylog'){if(currentUser.role!=='admin'){alert('Access denied. Admin only.');return;}initActivityLog();}
   if(id==='mcqresults'){if(currentUser.role!=='admin'){alert('Access denied. Admin only.');return;}initMCQResults();}
-  if(id==='promotion'){initPromotion();}
-  if(id==='skilltracker'){initSkillTracker();}
-  if(id==='classTraining'){initClassTraining();}
+  if(id==='skilltracker'){if(currentUser.role==='unit'){alert('Access denied.');return;}initSkillTracker();}
+  if(id==='classTraining'){if(currentUser.role==='unit'){alert('Access denied.');return;}initClassTraining();}
+  if(id==='promotion'){if(currentUser.role==='unit'){alert('Access denied.');return;}initPromotion();}
   // TO blocked from Settings — already handled by admin-only class
   if(id==='test')initTestPage();
 }
@@ -3193,7 +3238,7 @@ function initApp(){
 function renderDashboard(){
   const todayStr=today();
   const attToday=ATTENDANCE[todayStr]||{};
-  const myTrainees=(currentUser.role==='admin'||currentUser.role==='to')?TRAINEES:TRAINEES.filter(t=>t.masterId===currentUser.tmId);
+  const myTrainees=(currentUser.role==='admin'||currentUser.role==='to')?TRAINEES:currentUser.role==='unit'?TRAINEES.filter(t=>t.unit===currentUser.unitName):TRAINEES.filter(t=>t.masterId===currentUser.tmId);
   const present=myTrainees.filter(t=>attToday[t.id]==='P').length;
   const absent=myTrainees.filter(t=>attToday[t.id]==='A').length;
   const weeklyOff=myTrainees.filter(t=>isOffDay(todayStr,t.woff)).length;
@@ -4083,6 +4128,7 @@ function renderTR(){
   const activeUnitF=unitSel?unitSel.value:'';
   let list=TRAINEES;
   if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
+  if(currentUser.role==='unit')list=list.filter(t=>t.unit===currentUser.unitName);
   const attUnitF=(document.getElementById('att-unit-filter')||{}).value||'';
   if(attUnitF) list=list.filter(t=>(t.unit||'').toLowerCase()===attUnitF.toLowerCase());
   // TO sees all trainees (no filter needed)
@@ -4113,7 +4159,7 @@ function renderTR(){
     const attPct=calcAttPct(t.id);
     const avgDisc=calcAvgDisc(t.id);
     const tests=getTestsForTrainee(t.id).length;
-    const canEdit=currentUser.role==='admin'||currentUser.role==='to'||currentUser.tmId===t.masterId;
+    const canEdit=(currentUser.role==='admin'||currentUser.role==='to'||currentUser.tmId===t.masterId)&&currentUser.role!=='unit';
     const desigLabel={'Tr':'Trainee','Sr.Tr.':'Sr. Trainee','FTW':'Full Trained Worker'};
     const desigColor={'Tr':'badge-grey','Sr.Tr.':'badge-blue','FTW':'badge-green'};
     const d=t.desig||'Tr';
@@ -4303,7 +4349,7 @@ function renderDesig(){
   const tbody=document.getElementById('desig-tbody');
   tbody.innerHTML=list.map((t,i)=>{
     const tm=MASTERS.find(m=>m.id===t.masterId);
-    const canEdit=currentUser.role==='admin'||currentUser.role==='to'||currentUser.tmId===t.masterId;
+    const canEdit=(currentUser.role==='admin'||currentUser.role==='to'||currentUser.tmId===t.masterId)&&currentUser.role!=='unit';
     const d=t.desig||'Tr';
     const desigBtns=['Tr','Sr.Tr.','FTW'].map(v=>`<button class="dg-btn ${v===d?'active':''}" 
       style="width:auto;padding:4px 10px;border-radius:6px;border:2px solid;font-size:11px;font-weight:700;cursor:${canEdit?'pointer':'default'};
@@ -4795,6 +4841,7 @@ function renderAtt(){
   if(!ATTENDANCE[date])ATTENDANCE[date]={};
   let list=TRAINEES;
   if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
+  if(currentUser.role==='unit')list=list.filter(t=>t.unit===currentUser.unitName);
   // TO sees all trainees in attendance
   if(tmF)list=list.filter(t=>t.masterId===tmF);
   if(unitF)list=list.filter(t=>(t.unit||'').toLowerCase()===unitF.toLowerCase());
@@ -4879,6 +4926,7 @@ function markAllPresent(){
   if(!ATTENDANCE[date])ATTENDANCE[date]={};
   let list=TRAINEES;
   if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
+  if(currentUser.role==='unit')list=list.filter(t=>t.unit===currentUser.unitName);
   list.forEach(t=>{ATTENDANCE[date][t.id]='P';});
   saveAttendance();renderAtt();
 }
@@ -5858,6 +5906,7 @@ function renderReport(){
   const allTrainees = [...TRAINEES, ...ARCHIVED];
   let list=tmF?allTrainees.filter(t=>t.masterId===tmF):allTrainees;
   if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
+  if(currentUser.role==='unit')list=list.filter(t=>t.unit===currentUser.unitName);
   list.forEach(t=>{
     const isArchived=ARCHIVED.some(a=>a.id===t.id);
     trSel.innerHTML+=`<option value="${t.id}" ${curTr===t.id?'selected':''}>${t.name} (${t.roll})${isArchived?' [Archived]':''}</option>`;
@@ -5936,6 +5985,7 @@ function printReport(){
   const trF=document.getElementById('rpt-tr').value;
   let list=TRAINEES;
   if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
+  if(currentUser.role==='unit')list=list.filter(t=>t.unit===currentUser.unitName);
   if(tmF)list=list.filter(t=>t.masterId===tmF);
   if(trF)list=list.filter(t=>t.id===trF);
   const rows=list.map((t,i)=>{
@@ -5958,6 +6008,7 @@ function exportReport(){
   const tmF=document.getElementById('rpt-tm').value;
   let list=TRAINEES;
   if(currentUser.role==='tm')list=list.filter(t=>t.masterId===currentUser.tmId);
+  if(currentUser.role==='unit')list=list.filter(t=>t.unit===currentUser.unitName);
   if(tmF)list=list.filter(t=>t.masterId===tmF);
   const rows=[['Name','Roll No.','Training Master','Department','Joining Date','Designation','1st DOP','2nd DOP','Attendance%','Avg Discipline','Tests Taken','Test 1 (Latest-2)','Test 2 (Latest-1)','Test 3 (Latest)'],...list.map(t=>{
     const tm=MASTERS.find(m=>m.id===t.masterId);
@@ -5997,9 +6048,38 @@ function initSettings(){if(!adminOnly())return;
   document.getElementById('qb-count').textContent=PAPERS.map(p=>p.questions.length).join(' / ')+' questions';
   initDevices();
   renderDeptUnits();
+  renderUnitPwds();
   renderCTTopics();
   renderCTTrainers();
   initSkillSettings();
+}
+
+function renderUnitPwds(){
+  const container=document.getElementById('unit-pwd-list');
+  if(!container) return;
+  container.innerHTML=(DEPT_UNITS||[]).map(u=>`
+    <div style="background:#f8fafc;border:1.5px solid #d0d8e4;border-radius:9px;padding:10px 12px;">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px;">${u.unit}</div>
+      <input type="password" id="upwd-${u.unit.replace(/\s+/g,'_')}"
+        value="${UNIT_PWDS[u.unit]||''}"
+        placeholder="Enter password"
+        style="width:100%;padding:7px 10px;border:1.5px solid #d0d8e4;border-radius:7px;font-size:13px;box-sizing:border-box;">
+    </div>`).join('');
+}
+
+function saveUnitPwds(){
+  if(!adminOnly()) return;
+  const newPwds={};
+  (DEPT_UNITS||[]).forEach(u=>{
+    const el=document.getElementById('upwd-'+u.unit.replace(/\s+/g,'_'));
+    if(el && el.value.trim()) newPwds[u.unit]=el.value.trim();
+  });
+  UNIT_PWDS=newPwds;
+  LS.set('smpl_unit_pwds',UNIT_PWDS);
+  const s={adminPwd:ADMIN_PWD,tmPwd:TM_DEFAULT_PWD,toPwd:TO_DEFAULT_PWD,unitPwds:UNIT_PWDS};
+  gsSync('saveSettings',s,'smpl_settings',s);
+  logActivity('SETTINGS_SAVE','Unit Supervisor passwords updated');
+  alert('Unit passwords saved successfully.');
 }
 function switchQPaper(i){if(!adminOnly())return;
   qPaperIdx=i;
@@ -6505,7 +6585,7 @@ function renderPromotion(){
   const dc={'Tr':'var(--gm)','Sr.Tr.':'var(--blue)','FTW':'var(--green)'};
   tbody.innerHTML=list.length?list.map((t,i)=>{
     const tm=MASTERS.find(m=>m.id===t.masterId);
-    const canEdit=currentUser.role==='admin'||currentUser.role==='to'||currentUser.tmId===t.masterId;
+    const canEdit=(currentUser.role==='admin'||currentUser.role==='to'||currentUser.tmId===t.masterId)&&currentUser.role!=='unit';
     const d=t.desig||'Tr';
     const btns=['Tr','Sr.Tr.','FTW'].map(v=>`<button
       style="padding:4px 10px;border-radius:6px;border:2px solid ${dc[v]};font-size:11px;font-weight:700;
