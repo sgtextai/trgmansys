@@ -742,12 +742,14 @@ function showSkillDetail(assessId){
   if(!a){alert('Assessment not found.');return;}
   const pct=Math.round((a.totalPct||0)*100);
   const activeSkills=(a.skills||[]).filter(s=>s.active);
-  const lines=activeSkills.map(s=>
-    abbrSkill(s.name)+': '+s.actual
-  ).join('\n');
+  if(!activeSkills.length){
+    alert('Skill Assessment — '+fmt(a.date)+'\nTotal: '+pct+'%  |  '+(a.recommendation||'—')+'\n─────────────────────────\nNo skill details available.');
+    return;
+  }
+  const lines=activeSkills.map(s=>abbrSkill(s.name)+': '+s.actual).join('\n');
   alert(
     'Skill Assessment — '+fmt(a.date)+'\n'+
-    'Total: '+pct+'%  |  '+( a.recommendation||'—')+'\n'+
+    'Total: '+pct+'%  |  '+(a.recommendation||'—')+'\n'+
     '─────────────────────────\n'+
     lines
   );

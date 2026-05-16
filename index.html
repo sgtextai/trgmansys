@@ -2843,11 +2843,38 @@ function saveSkillAssessment(){
   loadSkillTrainee(); // refresh
 }
 
+function abbrSkill(name){
+  return name
+    .replace(/Per Minute/gi,'p/m')
+    .replace(/Including/gi,'incl.')
+    .replace(/Bobbins/gi,'Bobs')
+    .replace(/Roving Feeding/gi,'Rov.Feed')
+    .replace(/Changing Rate/gi,'Chg.Rate')
+    .replace(/Machine Efficiency/gi,'M/C Eff.')
+    .replace(/Average/gi,'Avg')
+    .replace(/Patrolling/gi,'Patrol')
+    .replace(/Batch Creeling/gi,'Bat.Creel')
+    .replace(/Ends Down/gi,'Ends Down')
+    .replace(/\(.*?\)/g,'')
+    .trim();
+}
+
 function showSkillDetail(assessId){
   const a=(SKILL_ASSESSMENTS||[]).find(x=>x.id===assessId);
   if(!a) return;
-  const details=a.skills.filter(s=>s.active).map(s=>s.name+': Actual='+s.actual+', Cap='+Math.round(s.capability*100)+'%, Val='+Math.round(s.value*100)+'%').join(' | ');
-  alert('Assessment: '+fmt(a.date)+' | Total: '+Math.round(a.totalPct*100)+'% | Rec: '+a.recommendation+' | '+details);
+  const activeSkills=(a.skills||[]).filter(s=>s.active);
+  const pct=Math.round((a.totalPct||0)*100);
+  if(!activeSkills.length){
+    alert('Skill Assessment — '+fmt(a.date)+'\nTotal: '+pct+'%  |  '+(a.recommendation||'—')+'\n─────────────────────────\nNo skill details available.');
+    return;
+  }
+  const lines=activeSkills.map(s=>abbrSkill(s.name)+': '+s.actual).join('\n');
+  alert(
+    'Skill Assessment — '+fmt(a.date)+'\n'+
+    'Total: '+pct+'%  |  '+(a.recommendation||'—')+'\n'+
+    '─────────────────────────\n'+
+    lines
+  );
 }
 
 function revokeSkillAssessment(assessId, isLatest){
