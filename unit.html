@@ -264,7 +264,7 @@ const SECRET_KEY='SMPL-fDWHUdTd7qTavPyEl2PEbJPHN3Z9PFeD';
 // DATA
 // ══════════════════════════════════════════════════════
 let TRAINEES=[], MASTERS=[], ARCHIVED=[], ATTENDANCE={}, DISCIPLINE={};
-let MCQ_RESULTS=[], DEPT_UNITS=[], UNIT_PWDS={};
+let MCQ_RESULTS=[], DEPT_UNITS=[], UNIT_PWDS={}, SKILL_ASSESSMENTS=[];
 let COMPANY_NAME='Sagar Manufacturers Pvt. Ltd.';
 let COMPANY_TAGLINE='Sagar Yarn | Bhopal, Madhya Pradesh';
 let currentUnit='';
@@ -373,6 +373,7 @@ async function loadFromGS(){
     // Use GS deptUnits if available, else fall back to defaults
     DEPT_UNITS    = (data.deptUnits && data.deptUnits.length>0) ? data.deptUnits : DEFAULT_DEPT_UNITS;
     UNIT_PWDS     = (data.settings&&data.settings.unitPwds) || {};
+    SKILL_ASSESSMENTS = data.skillAssessments || [];
 
     if(data.settings&&data.settings.companyName)    COMPANY_NAME=data.settings.companyName;
     if(data.settings&&data.settings.companyTagline) COMPANY_TAGLINE=data.settings.companyTagline;
@@ -689,13 +690,24 @@ function renderReport(){
       <td><span class="badge ${avgDisc==='A'?'badge-green':avgDisc==='B'?'badge-blue':avgDisc==='C'?'badge-orange':avgDisc==='D'?'badge-red':'badge-grey'}">${avgDisc}</span></td>
       <td style="text-align:center;font-weight:700;">${allTests.length}</td>
       <td style="min-width:220px;">${last3Html(t.id)}</td>
+      ${(()=>{
+        const sa=(SKILL_ASSESSMENTS||[]).filter(a=>a.traineeId===t.id).sort((a,b)=>b.date.localeCompare(a.date))[0];
+        if(!sa) return '<td style="color:var(--gm);text-align:center;font-size:12px;">—</td>';
+        const pct=Math.round((sa.totalPct||0)*100);
+        const col=pct>=95?'var(--green)':pct>=70?'var(--blue)':'var(--orange)';
+        return `<td style="font-size:12px;min-width:140px;">
+          <div style="font-weight:700;color:${col};font-size:14px;">${pct}%</div>
+          <div style="color:var(--navy);font-size:11px;font-weight:600;">${sa.recommendation||'—'}</div>
+          <div style="color:var(--gm);font-size:11px;">${fmt(sa.date)}</div>
+        </td>`;
+      })()}
     </tr>`;
   }).join('');
 
   out.innerHTML=`<div class="card">
     <div class="card-hd"><h3>Trainee Performance Report — ${currentUnit}</h3><span>${list.length} trainees</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Name / Roll</th><th>Training Master</th><th>Department</th><th>Joining</th><th>Designation</th><th>1st DOP</th><th>2nd DOP</th><th>Attendance</th><th>Avg Discipline</th><th>Tests Taken</th><th>Last 3 MCQ Scores</th></tr></thead>
+      <thead><tr><th>Name / Roll</th><th>Training Master</th><th>Department</th><th>Joining</th><th>Designation</th><th>1st DOP</th><th>2nd DOP</th><th>Attendance</th><th>Avg Discipline</th><th>Tests Taken</th><th>Last 3 MCQ Scores</th><th>Latest Skill Test</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
   </div>`;
