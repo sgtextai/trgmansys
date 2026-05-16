@@ -373,7 +373,11 @@ async function loadFromGS(){
     // Use GS deptUnits if available, else fall back to defaults
     DEPT_UNITS    = (data.deptUnits && data.deptUnits.length>0) ? data.deptUnits : DEFAULT_DEPT_UNITS;
     UNIT_PWDS     = (data.settings&&data.settings.unitPwds) || {};
-    SKILL_ASSESSMENTS = data.skillAssessments || [];
+    SKILL_ASSESSMENTS = (data.skillAssessments||[]).map(a=>({
+      ...a,
+      skills: Array.isArray(a.skills) ? a.skills :
+              (()=>{ try{ return JSON.parse(a.skills||'[]'); }catch(e){ return []; } })()
+    }));
 
     if(data.settings&&data.settings.companyName)    COMPANY_NAME=data.settings.companyName;
     if(data.settings&&data.settings.companyTagline) COMPANY_TAGLINE=data.settings.companyTagline;
