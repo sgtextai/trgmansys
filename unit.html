@@ -699,6 +699,7 @@ function renderReport(){
           <div style="font-weight:700;color:${col};font-size:14px;">${pct}%</div>
           <div style="color:var(--navy);font-size:11px;font-weight:600;">${sa.recommendation||'—'}</div>
           <div style="color:var(--gm);font-size:11px;">${fmt(sa.date)}</div>
+          <button onclick="showSkillDetail('${sa.id}')" style="margin-top:4px;font-size:10px;padding:2px 8px;background:#e8f0f7;border:1px solid #c0d0e0;border-radius:10px;cursor:pointer;color:var(--navy);">👁 View</button>
         </td>`;
       })()}
     </tr>`;
@@ -716,6 +717,38 @@ function renderReport(){
 // ══════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════
+// Abbreviate long skill names for compact alert display
+function abbrSkill(name){
+  return name
+    .replace(/Per Minute/gi,'p/m')
+    .replace(/Including/gi,'incl.')
+    .replace(/Bobbins/gi,'Bobs')
+    .replace(/Roving Feeding/gi,'Rov.Feed')
+    .replace(/Changing Rate/gi,'Chg.Rate')
+    .replace(/Machine Efficiency/gi,'M/C Eff.')
+    .replace(/Average/gi,'Avg')
+    .replace(/Patrolling/gi,'Patrol')
+    .replace(/Batch Creeling/gi,'Bat.Creel')
+    .replace(/\(.*?\)/g,'')
+    .trim();
+}
+
+function showSkillDetail(assessId){
+  const a=(SKILL_ASSESSMENTS||[]).find(x=>x.id===assessId);
+  if(!a){alert('Assessment not found.');return;}
+  const pct=Math.round((a.totalPct||0)*100);
+  const activeSkills=(a.skills||[]).filter(s=>s.active);
+  const lines=activeSkills.map(s=>
+    abbrSkill(s.name)+': '+s.actual
+  ).join('\n');
+  alert(
+    'Skill Assessment — '+fmt(a.date)+'\n'+
+    'Total: '+pct+'%  |  '+( a.recommendation||'—')+'\n'+
+    '─────────────────────────\n'+
+    lines
+  );
+}
+
 initLogin();
 </script>
 </body>
